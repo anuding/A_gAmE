@@ -261,4 +261,4 @@ __pycache__/
 *.pyc
 
 # Visual Studio Configruation file
-A_Game.vcxproj
+A_Game/A_Game.vcxproj

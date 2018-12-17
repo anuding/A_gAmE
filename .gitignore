@@ -260,4 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 
+# Visual Studio Configruation file
 A_Game.vcxproj

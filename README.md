@@ -1,0 +1,1 @@
+to load the proj you should to rename A_Game.vcxproj.example to A_Game.vcxproj and change your toolset if  and  configure needed

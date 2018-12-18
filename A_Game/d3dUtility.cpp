@@ -177,24 +177,3 @@ HRESULT D3DUtility::InitD3D(HINSTANCE hInstance, int width, int height, ID3D11Re
 
 
 
-LRESULT D3DUtility::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	switch (msg)
-	{
-	
-	case WM_LBUTTONDOWN:
-	{
-		MessageBox(hwnd,L"你点了左键",L"点击事件",MB_OK);
-		break;
-	}
-	case WM_DESTROY:
-		::PostQuitMessage(0);
-		break;
-
-	case WM_KEYDOWN:
-		if (wParam == VK_ESCAPE)
-			::DestroyWindow(hwnd);
-		break;
-	}
-	return ::DefWindowProc(hwnd, msg, wParam, lParam);
-}

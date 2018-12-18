@@ -7,11 +7,36 @@ public:
 	virtual bool InitApp() override;
 	MainScene(HINSTANCE hInstance);
 	int Running();
+	//virtual void Update(const GameTimer& gt)override;
+	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 };
 MainScene::MainScene(HINSTANCE hInstance) : D3DUtility(hInstance)
 {
 
 }
+
+LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	switch (msg)
+	{
+
+	case WM_LBUTTONDOWN:
+	{
+		MessageBox(hwnd, L"你点了左键", L"点击事件", MB_OK);
+		break;
+	}
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		break;
+
+	case WM_KEYDOWN:
+		if (wParam == VK_ESCAPE)
+			::DestroyWindow(hwnd);
+		break;
+	}
+	return ::DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
 
 int MainScene::Running()
 {

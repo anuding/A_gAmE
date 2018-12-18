@@ -37,7 +37,7 @@ public:
 	//³õÊ¼»¯´°¿Ú
 	HRESULT InitWindow();
 	static D3DUtility* GetApp();
-	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)=0;
 
 
 

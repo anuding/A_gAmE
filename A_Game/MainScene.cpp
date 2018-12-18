@@ -154,10 +154,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	GameObject* cube = new GameObject(mainscene.mApp);
 	GameObject* boss = new GameObject(mainscene.mApp);
-
+	
 	GameObjectList.push_back(cube);
 	GameObjectList.push_back(boss);
+	//XMMATRIX world;
+	////world = XMMatrixIdentity();
+	//world = XMMatrixTranslation(fMoveX, fMoveY, fMoveZ);
 
+	////__m128 MoveX = _mm_set1_ps(fMoveX);
+	//GameObjectList[0]->SetWorldMatrix(world);
 
 	mainscene.Running();
 

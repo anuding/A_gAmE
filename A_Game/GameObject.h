@@ -15,7 +15,7 @@ public:
 	GameObject(D3DUtility* app);
 	~GameObject();
 	//void SetPosition();
-	void SetWorldMatrix(XMMATRIX world = XMMatrixIdentity());
+	void SetWorldMatrix(XMMATRIX world);
 	//×ÅÉ«Æ÷
 	ID3D11VertexShader* m_VertexShader = nullptr;
 	ID3D11PixelShader* m_PixelShader = nullptr;

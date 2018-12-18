@@ -6,7 +6,7 @@ GameObject::GameObject(D3DUtility* app)
 	buildEffect(device);
 	buildInputlayout(device);
 	buildVertexBufferandIndicesBuffer(device);
-	SetWorldMatrix();
+	SetWorldMatrix(XMMatrixIdentity());
 	
 	
 }

@@ -21,6 +21,50 @@ bool d3d::InitD3D(
 	IDXGISwapChain** swapChain,
 	ID3D11Device** device)
 {
+
+
+}
+
+
+//消息循环，和之前"Hello World"程序中Run()起到同样的功能
+//bool (*ptr_display)(float timeDelta)表示传递一个函数指针作为参数
+//这个函数有一个float类型的参数，有一个bool类型的返回
+int d3d::EnterMsgLoop(bool(*ptr_display)(float timeDelta))
+{
+	MSG msg;
+	::ZeroMemory(&msg, sizeof(MSG));                  //初始化内存
+
+	static float lastTime = (float)timeGetTime();     //第一次获取当前时间
+
+	while (msg.message != WM_QUIT)
+	{
+		if (::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+		{
+			::TranslateMessage(&msg);
+			::DispatchMessage(&msg);
+		}
+		else
+		{
+			float currTime = (float)timeGetTime();            //第二次获取当前时间
+			float timeDelta = (currTime - lastTime)*0.001f;    //获取两次时间之间的时间差
+
+			ptr_display(timeDelta);    //调用显示函数，这在后面实现图形的变化（如旋转）时会用到
+
+			lastTime = currTime;
+		}
+	}
+	return msg.wParam;
+}
+
+HRESULT d3dUtility::InitApp()
+{
+	InitWindow();
+	InitD3D();
+	return E_NOTIMPL;
+}
+
+HRESULT d3dUtility::InitWindow()
+{
 	//***********第一部分：创建一个窗口开始***************
 	//这部分的代码和实验一中的创建窗口代码基本一致，具体参数的注释可以参考实验一
 	//创建窗口的4个步骤：1 设计一个窗口类；2 注册窗口类；3 创建窗口；4 窗口显示和更新 
@@ -70,6 +114,11 @@ bool d3d::InitD3D(
 	::UpdateWindow(hwnd);
 	//***********第一部分：创建一个窗口结束***************
 
+	return E_NOTIMPL;
+}
+
+HRESULT d3dUtility::InitD3D(HINSTANCE hInstance, int width, int height, ID3D11RenderTargetView ** renderTargetView, ID3D11DeviceContext ** immediateContext, IDXGISwapChain ** swapChain, ID3D11Device ** device)
+{
 	//***********第二部分：初始化D3D开始***************
 	//初始化D3D设备主要为以下步骤
 	//1. 描述交换链，即填充DXGI_SWAP_CHAIN_DESC结构
@@ -172,35 +221,5 @@ bool d3d::InitD3D(
 
 	return true;
 	//***********第二部分：初始化D3D结束***************
-}
-
-
-//消息循环，和之前"Hello World"程序中Run()起到同样的功能
-//bool (*ptr_display)(float timeDelta)表示传递一个函数指针作为参数
-//这个函数有一个float类型的参数，有一个bool类型的返回
-int d3d::EnterMsgLoop(bool(*ptr_display)(float timeDelta))
-{
-	MSG msg;
-	::ZeroMemory(&msg, sizeof(MSG));                  //初始化内存
-
-	static float lastTime = (float)timeGetTime();     //第一次获取当前时间
-
-	while (msg.message != WM_QUIT)
-	{
-		if (::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-		{
-			::TranslateMessage(&msg);
-			::DispatchMessage(&msg);
-		}
-		else
-		{
-			float currTime = (float)timeGetTime();            //第二次获取当前时间
-			float timeDelta = (currTime - lastTime)*0.001f;    //获取两次时间之间的时间差
-
-			ptr_display(timeDelta);    //调用显示函数，这在后面实现图形的变化（如旋转）时会用到
-
-			lastTime = currTime;
-		}
-	}
-	return msg.wParam;
+	return E_NOTIMPL;
 }

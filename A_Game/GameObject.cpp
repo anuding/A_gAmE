@@ -1,11 +1,14 @@
 #include "GameObject.h"
-GameObject::GameObject(ID3D11Device* device)
+GameObject::GameObject(D3DUtility* app)
 {
+	mapp = app;
+	ID3D11Device* device = app->device.Get();
 	buildEffect(device);
 	buildInputlayout(device);
 	buildVertexBufferandIndicesBuffer(device);
 	SetWorldMatrix();
-	technique->GetDesc(&techDesc);
+	
+	
 }
 
 GameObject::~GameObject()
@@ -13,11 +16,11 @@ GameObject::~GameObject()
 
 }
 
-void GameObject::SetWorldMatrix()
+void GameObject::SetWorldMatrix(XMMATRIX world)
 {
 	//Matrix Stuff
-	world = XMMatrixIdentity();
-	world = XMMatrixRotationZ(0.5f);
+	/*world = XMMatrixIdentity();*/
+	//world = XMMatrixRotationZ(0.5f);
 	XMVECTOR Eye = XMVectorSet(3.0f, 5.0f, -5.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -32,6 +35,7 @@ void GameObject::SetWorldMatrix()
 		->SetMatrix((float*)&view);
 	effect->GetVariableByName("Projection")->AsMatrix()
 		->SetMatrix((float*)&projection);
+	Setup();
 }
 
 void GameObject::buildEffect(ID3D11Device* device)
@@ -135,4 +139,14 @@ void GameObject::buildVertexBufferandIndicesBuffer(ID3D11Device* device)
 		::MessageBox(NULL, L"Index Buffer creation failed!!", L"ERROR", MB_OK);
 		
 	}
+}
+
+bool GameObject::Setup()
+{
+	mapp->immediateContext->IASetInputLayout(vertexLayout);
+	mapp->immediateContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	mapp->immediateContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R16_UINT, 0);
+	mapp->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	technique->GetDesc(&techDesc);
+	return true;
 }

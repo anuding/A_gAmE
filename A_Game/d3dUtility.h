@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __d3dUtilityH__
-#define __d3dUtilityH__
+#ifndef __D3DUtilityH__
+#define __D3DUtilityH__
 
 #include <Windows.h>
 //数学库相关头文件
@@ -21,16 +21,32 @@ using namespace DirectX;
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "winmm.lib")
 
-class d3dUtility
+class D3DUtility
 {
 public:
-
-protected:
-	HRESULT InitApp();
-private:
+	D3DUtility(HINSTANCE hInstance);
+	HINSTANCE mhAppInst = nullptr;
+	HWND  mhMainWnd = nullptr;
+	WNDCLASS wc = { };
+//protected:
+	virtual bool InitApp();
+	static D3DUtility* mApp;
+//private:
+	int mClientWidth = 800;
+	int mClientHeight = 600;
 	//初始化窗口
 	HRESULT InitWindow();
+	static D3DUtility* GetApp();
+	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+
+
+
+	ID3D11Device* device = nullptr;                    //D3D11设备指针
+	IDXGISwapChain* swapChain = nullptr;               //交换链指针
+	ID3D11DeviceContext* immediateContext = nullptr;   //设备上下文指针
+	ID3D11RenderTargetView* renderTargetView = nullptr;//渲染目标视图指针  
+	ID3DX11EffectTechnique* gtechnique = nullptr;
 	//初始化D3D
 	HRESULT InitD3D(
 		HINSTANCE hInstance,
@@ -41,11 +57,7 @@ private:
 		ID3D11Device** device);                           //设备用接口，每个D3D程序至少有一个设备
 
 
-	//回调函数
-	LRESULT CALLBACK WndProc(
-		HWND hwnd,
-		UINT msg,
-		WPARAM wParam,
-		LPARAM lParam);
+
+	
 };
 #endif

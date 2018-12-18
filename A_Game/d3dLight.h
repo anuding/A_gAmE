@@ -35,6 +35,6 @@ struct Light
 	float fallOff;			//聚光灯衰减系数，一般取值为1.0
 
 };
-
+//this is one test for pull request
 #endif
 

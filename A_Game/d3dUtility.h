@@ -3,6 +3,7 @@
 #define __D3DUtilityH__
 
 #include <Windows.h>
+#include <wrl.h>
 //数学库相关头文件
 #include <DirectXMath.h>
 using namespace DirectX;
@@ -42,12 +43,17 @@ public:
 
 
 
-	ID3D11Device* device = nullptr;                    //D3D11设备指针
-	IDXGISwapChain* swapChain = nullptr;               //交换链指针
-	ID3D11DeviceContext* immediateContext = nullptr;   //设备上下文指针
-	ID3D11RenderTargetView* renderTargetView = nullptr;//渲染目标视图指针  
-	ID3DX11EffectTechnique* gtechnique = nullptr;
-	//初始化D3D
+	Microsoft::WRL::ComPtr<ID3D11Device> device = nullptr;                    //D3D11设备指针
+	Microsoft::WRL::ComPtr<IDXGISwapChain> swapChain = nullptr;               //交换链指针
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediateContext = nullptr;   //设备上下文指针
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTargetView = nullptr;//渲染目标视图指针  
+
+
+	//ID3D11Device* device = nullptr;                    //D3D11设备指针
+	//IDXGISwapChain* swapChain = nullptr;               //交换链指针
+	//ID3D11DeviceContext* immediateContext = nullptr;   //设备上下文指针
+	//ID3D11RenderTargetView* renderTargetView = nullptr;//渲染目标视图指针  
+
 	HRESULT InitD3D(
 		HINSTANCE hInstance,
 		int width, int height,

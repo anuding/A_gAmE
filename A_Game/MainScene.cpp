@@ -1,6 +1,14 @@
 #include "d3dUtility.h"
 #include "GameObject.h"
+#include <vector>
 
+std::vector<GameObject*> GameObjectList;
+float fMoveX = 0.0f;
+float fMoveY = 0.0f;
+float fMoveZ = 0.0f;
+__m128 MoveX = _mm_set1_ps(fMoveX);
+__m128 MoveY = _mm_set1_ps(fMoveY);
+__m128 MoveZ = _mm_set1_ps(fMoveZ);
 class  MainScene : public D3DUtility
 {
 public:
@@ -9,6 +17,8 @@ public:
 	int Running();
 	//virtual void Update(const GameTimer& gt)override;
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+public:
+	
 };
 MainScene::MainScene(HINSTANCE hInstance) : D3DUtility(hInstance)
 {
@@ -23,6 +33,7 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	{
 		MessageBox(hwnd, L"你点了左键", L"点击事件", MB_OK);
+		
 		break;
 	}
 	case WM_DESTROY:
@@ -30,13 +41,76 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_KEYDOWN:
+	{
 		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
+		if (wParam == 'W')//W 0x57
+		{
+			fMoveZ += 0.1f;
+		}
+		if (wParam == 'S')//W 0x57
+		{
+			fMoveZ -= 0.1f;
+		}
+		if (wParam == 'A')//W 0x57
+		{
+			fMoveX -= 0.1f;
+		}
+		if (wParam == 'D')//W 0x57
+		{
+			fMoveX += 0.1f;
+		}
+		XMMATRIX world;
+		//world = XMMatrixIdentity();
+		world = XMMatrixTranslation(fMoveX, fMoveY, fMoveZ);
+
+		//__m128 MoveX = _mm_set1_ps(fMoveX);
+		GameObjectList[0]->SetWorldMatrix(world);
 		break;
+	}
+		
+		
 	}
 	return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+
+
+
+
+
+
+//
+////**************以下为框架函数******************
+
+
+
+
+bool Display(D3DUtility* mApp)
+{
+	if (mApp->device)
+	{
+		//声明一个数组存放颜色信息，4个元素分别表示红，绿，蓝以及alpha
+		float ClearColor[4] = { 0.2f, 0.125f, 0.3f, 1.0f };
+		//清除渲染目标视图
+		mApp->immediateContext->ClearRenderTargetView(mApp->renderTargetView.Get(), ClearColor);
+
+		//for (auto iter = GameObjectList.cbegin(); iter != GameObjectList.cend(); iter++)
+		//{
+		//	&iter->;
+		//}
+		int count = GameObjectList.size();
+		for (int i = 0; i < count; i++)
+		{
+			GameObjectList[i]->technique->GetPassByIndex(0)->Apply(0, mApp->immediateContext.Get());
+			mApp->immediateContext->DrawIndexed(36, 0, 0);
+		}
+	
+		mApp->swapChain->Present(0, 0);
+	}
+	return true;
+}
+//**************框架函数******************
 
 int MainScene::Running()
 {
@@ -56,11 +130,7 @@ int MainScene::Running()
 		}
 		else
 		{
-			//声明一个数组存放颜色信息，4个元素分别表示红，绿，蓝以及alpha
-			float ClearColor[4] = { 0.2f, 0.125f, 0.3f, 1.0f };
-			//清除渲染目标视图
-			immediateContext->ClearRenderTargetView(renderTargetView, ClearColor);
-			swapChain->Present(0, 0);
+			Display(mApp);
 			//OutputDebugString(L"!!!ALIVE!!\r\n");
 			//在这里进行动画计算和渲染
 		}
@@ -69,75 +139,6 @@ int MainScene::Running()
 	return 0;
 }
 
-
-
-
-
-//
-////**************以下为框架函数******************
-//bool Setup(GameObject* obj)
-//{
-//	
-//	immediateContext->IASetInputLayout(obj->vertexLayout);
-//	immediateContext->IASetVertexBuffers(0, 1, &(obj->vertexBuffer), &obj->stride, &obj->offset);
-//	immediateContext->IASetIndexBuffer(obj->indexBuffer, DXGI_FORMAT_R16_UINT, 0);
-//	immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-//
-//	return true;
-//}
-//
-//void Cleanup()
-//{
-//	//释放全局指针
-//	if (renderTargetView) renderTargetView->Release();
-//	if (immediateContext) immediateContext->Release();
-//	if (swapChain) swapChain->Release();
-//	if (device) device->Release();
-//	/*if (m_VertexShader) m_VertexShader->Release();
-//	if (m_PixelShader) m_PixelShader->Release();
-//
-//	if (vertexLayout) vertexLayout->Release();
-//	if (effect) effect->Release();*/
-//	if (depthStencilView) depthStencilView->Release();
-//}
-//
-//bool Display(float timeDelta)
-//{
-//	if (device)
-//	{
-//
-//		//清除渲染目标视图
-//		immediateContext->ClearRenderTargetView(renderTargetView, ClearColor);
-//		
-//			
-//		gtechnique->GetPassByIndex(0)->Apply(0, immediateContext);
-//
-//		immediateContext->DrawIndexed(36, 0, 0);
-//		swapChain->Present(0, 0);
-//	}
-//	return true;
-//}
-//**************框架函数******************
-
-//
-////
-//// 回调函数
-////
-//LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-//{
-//	switch (msg)
-//	{
-//	case WM_DESTROY:
-//		::PostQuitMessage(0);
-//		break;
-//
-//	case WM_KEYDOWN:
-//		if (wParam == VK_ESCAPE)
-//			::DestroyWindow(hwnd);
-//		break;
-//	}
-//	return ::DefWindowProc(hwnd, msg, wParam, lParam);
-//}
 
 //
 // 主函数WinMain
@@ -149,8 +150,15 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
 
 	MainScene mainscene(hInstance);
-	//TestApp *theApp = new TestApp(hInstance);
 	mainscene.InitApp();
+
+	GameObject* cube = new GameObject(mainscene.mApp);
+	GameObject* boss = new GameObject(mainscene.mApp);
+
+	GameObjectList.push_back(cube);
+	GameObjectList.push_back(boss);
+
+
 	mainscene.Running();
 
 

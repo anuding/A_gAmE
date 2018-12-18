@@ -12,10 +12,10 @@ struct  Vertex
 class GameObject
 {
 public:
-	GameObject(ID3D11Device* device);
+	GameObject(D3DUtility* app);
 	~GameObject();
 	//void SetPosition();
-	void SetWorldMatrix();
+	void SetWorldMatrix(XMMATRIX world = XMMatrixIdentity());
 	//着色器
 	ID3D11VertexShader* m_VertexShader = nullptr;
 	ID3D11PixelShader* m_PixelShader = nullptr;
@@ -32,14 +32,17 @@ public:
 	XMMATRIX projection;    //用于投影变换的矩阵
 
 
-	UINT stride = sizeof(Vertex);
+	 UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
 	D3DX11_TECHNIQUE_DESC techDesc;
+	D3DUtility* mapp;
 private:
+	
 	void buildEffect(ID3D11Device* device);
 	void buildInputlayout(ID3D11Device* device);
 	void buildVertexBufferandIndicesBuffer(ID3D11Device* device);
+	bool Setup();
 };
 
 //this is another test

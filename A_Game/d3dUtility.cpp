@@ -1,75 +1,75 @@
-//这是我们自己创建的"d3dUtility.h"头文件
-#include "d3dUtility.h"
+//这是我们自己创建的"D3DUtility.h"头文件
+#include "D3DUtility.h"
 
-//D3D初始化
-//这个函数中包括两个部分：第一部分：创建一个窗口；第二部分：初始化D3D
-//函数参数包括：
-//1. HINSTANCE hInstance  当前应用程序实例的句柄
-//2. int width            窗口宽 
-//3. int height           窗口高
-//4. ID3D11RenderTargetView** renderTargetView 目标渲染视图指针
-//5. ID3D11DeviceContext** immediateContext    设备上下文指针，设备上下文包含设备的使用环境和设置
-//6. IDXGISwapChain** swapChain                交换链指针，用于描述交换链的特性
-//7. ID3D11Device** device                     设备用指针，每个D3D程序至少有一个设备
-
-bool d3d::InitD3D(
-	HINSTANCE hInstance,
-	int width,
-	int height,
-	ID3D11RenderTargetView** renderTargetView,
-	ID3D11DeviceContext** immediateContext,
-	IDXGISwapChain** swapChain,
-	ID3D11Device** device)
+D3DUtility* D3DUtility::mApp = nullptr;
+LRESULT CALLBACK
+MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	//***********第一部分：创建一个窗口开始***************
-	//这部分的代码和实验一中的创建窗口代码基本一致，具体参数的注释可以参考实验一
-	//创建窗口的4个步骤：1 设计一个窗口类；2 注册窗口类；3 创建窗口；4 窗口显示和更新 
-	//1 设计一个窗口类
-	WNDCLASS wc;
+	// Forward hwnd on because we can get messages (e.g., WM_CREATE)
+	// before CreateWindow returns, and thus before mhMainWnd is valid.
+	return D3DUtility::GetApp()->MsgProc(hwnd, msg, wParam, lParam);
+}
 
-	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = (WNDPROC)d3d::WndProc;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = hInstance;
-	wc.hIcon = LoadIcon(0, IDI_APPLICATION);
+
+
+D3DUtility::D3DUtility(HINSTANCE hInstance)
+{
+	mApp = this;
+}
+D3DUtility* D3DUtility::GetApp()
+{
+	return mApp;
+}
+
+
+bool D3DUtility::InitApp()
+{
+	InitWindow();
+	InitD3D(
+		mhAppInst,
+		mClientWidth,
+		mClientHeight, 
+		&renderTargetView,
+		&immediateContext,
+		&swapChain,
+		&device);
+	return true;
+}
+
+HRESULT D3DUtility::InitWindow()
+{
+	wc.lpfnWndProc = MainWndProc;
+	wc.hInstance = mhAppInst;
+	wc.lpszClassName = L"Sample Window Class";
 	wc.hCursor = LoadCursor(0, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	wc.lpszMenuName = 0;
-	wc.lpszClassName = L"Direct3D11App";
+	RegisterClass(&wc);
+	mhMainWnd = CreateWindowEx(
+		0,                              // Optional window styles.
+		L"Sample Window Class",                     // Window class
+		L"Learn to Program Windows",    // Window text
+		WS_OVERLAPPEDWINDOW,            // Window style
 
-	//2 注册窗口类
-	if (!RegisterClass(&wc))
+		// Size and position
+		CW_USEDEFAULT, CW_USEDEFAULT, mClientWidth, mClientHeight,
+
+		NULL,       // Parent window    
+		NULL,       // Menu
+		mhAppInst,  // Instance handle
+		NULL        // Additional application data
+	);
+
+	if (mhMainWnd == NULL)
 	{
-		::MessageBox(0, L"RegisterClass() - FAILED", 0, 0);
 		return false;
 	}
 
-	//3 创建窗口
-	HWND hwnd = 0;
-	hwnd = ::CreateWindow(L"Direct3D11App",
-		L"D3D11",
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		width,
-		height,
-		0,
-		0,
-		hInstance,
-		0);
+	ShowWindow(mhMainWnd, SW_SHOW);
+	return S_OK;
+}
 
-	if (!hwnd)
-	{
-		::MessageBox(0, L"CreateWindow() - FAILED", 0, 0);
-		return false;
-	}
 
-	//4 窗口显示和更新
-	::ShowWindow(hwnd, SW_SHOW);
-	::UpdateWindow(hwnd);
-	//***********第一部分：创建一个窗口结束***************
-
+HRESULT D3DUtility::InitD3D(HINSTANCE hInstance, int width, int height, ID3D11RenderTargetView ** renderTargetView, ID3D11DeviceContext ** immediateContext, IDXGISwapChain ** swapChain, ID3D11Device ** device)
+{
 	//***********第二部分：初始化D3D开始***************
 	//初始化D3D设备主要为以下步骤
 	//1. 描述交换链，即填充DXGI_SWAP_CHAIN_DESC结构
@@ -89,7 +89,7 @@ bool d3d::InitD3D(
 	sd.BufferDesc.RefreshRate.Numerator = 60;          //刷新频率的分子为60
 	sd.BufferDesc.RefreshRate.Denominator = 1;         //刷新频率的分母为1，即，刷新频率为每秒6次
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;  //用来描述后台缓存的用法控制CPU对后台缓存的访问 
-	sd.OutputWindow = hwnd;                            //指向渲染目标窗口的句柄
+	sd.OutputWindow = mhMainWnd;                            //指向渲染目标窗口的句柄
 	sd.SampleDesc.Count = 1;                           //多重采样的属性，本例中不采用多重采样即，
 	sd.SampleDesc.Quality = 0;                         //所以Count=1，Quality=0，详细见书P54
 	sd.Windowed = TRUE;                                //TRUE为窗口模式，FALSE为全屏模式
@@ -172,35 +172,8 @@ bool d3d::InitD3D(
 
 	return true;
 	//***********第二部分：初始化D3D结束***************
+	return E_NOTIMPL;
 }
 
 
-//消息循环，和之前"Hello World"程序中Run()起到同样的功能
-//bool (*ptr_display)(float timeDelta)表示传递一个函数指针作为参数
-//这个函数有一个float类型的参数，有一个bool类型的返回
-int d3d::EnterMsgLoop(bool(*ptr_display)(float timeDelta))
-{
-	MSG msg;
-	::ZeroMemory(&msg, sizeof(MSG));                  //初始化内存
 
-	static float lastTime = (float)timeGetTime();     //第一次获取当前时间
-
-	while (msg.message != WM_QUIT)
-	{
-		if (::PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
-		{
-			::TranslateMessage(&msg);
-			::DispatchMessage(&msg);
-		}
-		else
-		{
-			float currTime = (float)timeGetTime();            //第二次获取当前时间
-			float timeDelta = (currTime - lastTime)*0.001f;    //获取两次时间之间的时间差
-
-			ptr_display(timeDelta);    //调用显示函数，这在后面实现图形的变化（如旋转）时会用到
-
-			lastTime = currTime;
-		}
-	}
-	return msg.wParam;
-}

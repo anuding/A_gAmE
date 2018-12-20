@@ -1,10 +1,14 @@
 #include "GameObject.h"
+
+//123123
+//123123123123
+//4567899
 GameObject::GameObject(D3DUtility* app)
 {
 	mapp = app;
 	ID3D11Device* device = app->device.Get();
 	buildEffect(device);
-	buildInputlayout(device);
+	buildInputlayout(device);	
 	buildVertexBufferandIndicesBuffer(device);
 	SetWorldMatrix();
 	

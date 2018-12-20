@@ -3,6 +3,7 @@
 //123123
 //123123123123
 //4567899
+//asdbasd
 GameObject::GameObject(D3DUtility* app)
 {
 	mapp = app;

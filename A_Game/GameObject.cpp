@@ -1,6 +1,7 @@
 #include "GameObject.h"
 
 //123123
+//123123123123
 GameObject::GameObject(D3DUtility* app)
 {
 	mapp = app;

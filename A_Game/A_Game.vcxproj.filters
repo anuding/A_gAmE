@@ -44,5 +44,8 @@
     <None Include="Shader\SimpleShader.fx">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Shader\TextureAndLightShader.fx">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -103,7 +103,8 @@ bool Display(D3DUtility* mApp)
 		for (int i = 0; i < count; i++)
 		{
 			GameObjectList[i]->technique->GetPassByIndex(0)->Apply(0, mApp->immediateContext.Get());
-			mApp->immediateContext->DrawIndexed(36, 0, 0);
+			//mApp->immediateContext->DrawIndexed(36, 0, 0);
+			mApp->immediateContext->Draw(36, 0);   //绘制立方体
 		}
 	
 		mApp->swapChain->Present(0, 0);
@@ -153,10 +154,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	mainscene.InitApp();
 
 	GameObject* cube = new GameObject(mainscene.mApp);
-	GameObject* boss = new GameObject(mainscene.mApp);
+	//GameObject* boss = new GameObject(mainscene.mApp);
 	
 	GameObjectList.push_back(cube);
-	GameObjectList.push_back(boss);
+	//GameObjectList.push_back(boss);
+
+
 	//XMMATRIX world;
 	////world = XMMatrixIdentity();
 	//world = XMMatrixTranslation(fMoveX, fMoveY, fMoveZ);

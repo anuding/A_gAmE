@@ -8,6 +8,9 @@ struct  Vertex
 {
 	XMFLOAT3 Pos;
 	XMFLOAT3 Normal;
+
+	XMFLOAT2 Tex;
+
 };
 //这是材质的对各种光反射率
 struct Material
@@ -73,10 +76,12 @@ private:
 	//声明材质和光照的全局对象
 	Material		material;      //材质
 	Light			light;      //光源数组
+	ID3D11ShaderResourceView* texture = nullptr;      //纹理
 	void buildEffect(ID3D11Device* device);
 	void buildInputlayout(ID3D11Device* device);
 	void buildVertexBufferandIndicesBuffer(ID3D11Device* device);
 	void buildMaterialandLight();
+	void buildTexture();
 	bool Setup();
 };
 

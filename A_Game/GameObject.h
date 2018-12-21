@@ -47,6 +47,7 @@ struct Light
 class GameObject
 {
 public:
+	
 	GameObject(D3DUtility* app);
 	~GameObject();
 	//void SetPosition();

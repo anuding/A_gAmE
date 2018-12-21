@@ -29,10 +29,10 @@ bool D3DUtility::InitApp()
 		mhAppInst,
 		mClientWidth,
 		mClientHeight, 
-		&renderTargetView,
-		&immediateContext,
-		&swapChain,
-		&device);
+		renderTargetView.GetAddressOf(),
+		immediateContext.GetAddressOf(),
+		swapChain.GetAddressOf(),
+		device.GetAddressOf());
 	return true;
 }
 

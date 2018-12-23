@@ -48,49 +48,59 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_KEYDOWN:
 	{
 		//计算player到Boss的方向
-		GameObject* bo = GameObjectList[1];
-		GameObject* pl = GameObjectList[0];
-		XMFLOAT4 originPos;//Boss原本的位置
-		XMStoreFloat4(&originPos, pl->GetPos());
-		XMVECTOR dir = bo->GetPos() - pl->GetPos();
-		
-		XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
-		XMVECTOR front = XMVector3Normalize(dir);
-		XMVECTOR back = -front;
-		XMVECTOR right = XMVector3Cross(dir, tmp);
-		XMVECTOR left = -right;
-		//float playerSpeed = 1.0f;
+		//GameObject* bo = GameObjectList[1];
+		//GameObject* pl = GameObjectList[0];
+		//XMFLOAT4 originPos;//Boss原本的位置
+		//XMStoreFloat4(&originPos, pl->GetPos());
+		//XMVECTOR dir = bo->GetPos() - pl->GetPos();
+		//
+		//XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
+		//XMVECTOR front = XMVector3Normalize(dir);
+		//XMVECTOR back = -front;
+		//XMVECTOR right = XMVector3Cross(dir, tmp);
+		//XMVECTOR left = -right;
+		////float playerSpeed = 1.0f;
 
-		XMVECTOR moveVector=XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+		//XMVECTOR moveVector=XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
+		//float camSpeed = 1.0f / 360;
+		//if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //响应键盘左方向键
+		//	moveVector += left;
+		//if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //响应键盘右方向键
+		//	moveVector += right;
+		//if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //响应键盘上方向键
+		//	moveVector += front;
+		//if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //响应键盘下方向键
+		//	moveVector += back;
 		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
-		if (wParam == 'W')//W 0x57
-		{
-			moveVector +=  front;
-		}
-		if (wParam == 'S')//W 0x57
-		{
-			moveVector +=  back;
-		}
-		if (wParam == 'A')//W 0x57
-		{
-			moveVector +=  left;
-		}
-		if (wParam == 'D')//W 0x57
-		{
-			moveVector +=  right;
-		}
-		XMMATRIX world;
-		XMFLOAT4 deltainDir;
-		XMStoreFloat4(&deltainDir, moveVector); //从Boss指向player的向量  
-		float destX; float destY; float destZ;//Boss应该移动到的位置
-		destX = originPos.x + deltainDir.x*0.1f;
-		destY = originPos.y + deltainDir.y*0.1f;
-		destZ = originPos.z + deltainDir.z*0.1f;
+		//if (wParam == 'W')//W 0x57
+		//{
+		//	moveVector +=  front;
+		//}
+		//if (wParam == 'S')//W 0x57
+		//{
+		//	moveVector +=  back;
+		//}
+		//if (wParam == 'A')//W 0x57
+		//{
+		//	moveVector +=  left;
+		//}
+		//if (wParam == 'D')//W 0x57
+		//{
+		//	moveVector +=  right;
+		//}
+		//XMMATRIX world;
+		//XMFLOAT4 deltainDir;
+		//XMStoreFloat4(&deltainDir, moveVector); //从Boss指向player的向量  
+		//float destX; float destY; float destZ;//Boss应该移动到的位置
+		//destX = originPos.x + deltainDir.x*0.1f;
+		//destY = originPos.y + deltainDir.y*0.1f;
+		//destZ = originPos.z + deltainDir.z*0.1f;
 
-		world = XMMatrixTranslation(destX, destY, destZ);
-		
-		GameObjectList[0]->SetWorldMatrix(world);
+		//world = XMMatrixTranslation(destX, destY, destZ);
+		//
+		//GameObjectList[0]->SetWorldMatrix(world);
 		break;
 	}
 		
@@ -108,25 +118,54 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 //
 ////**************以下为框架函数******************
 
+void Update()
+{
+	//计算player到Boss的方向
+	GameObject* bo = GameObjectList[1];
+	GameObject* pl = GameObjectList[0];
+	XMFLOAT4 originPos;//Boss原本的位置
+	XMStoreFloat4(&originPos, pl->GetPos());
+	XMVECTOR dir = bo->GetPos() - pl->GetPos();
 
+	XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
+	XMVECTOR front = XMVector3Normalize(dir);
+	XMVECTOR back = -front;
+	XMVECTOR right = XMVector3Cross(dir, tmp);
+	XMVECTOR left = -right;
+	//float playerSpeed = 1.0f;
+
+	XMVECTOR moveVector = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
+	float camSpeed = 1.0f / 360;
+	if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //响应键盘左方向键
+		moveVector += left;
+	if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //响应键盘右方向键
+		moveVector += right;
+	if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //响应键盘上方向键
+		moveVector += front;
+	if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //响应键盘下方向键
+		moveVector += back;
+	XMMATRIX world;
+	XMFLOAT4 deltainDir;
+	XMStoreFloat4(&deltainDir, moveVector); //从Boss指向player的向量  
+	float destX; float destY; float destZ;//Boss应该移动到的位置
+	destX = originPos.x + deltainDir.x*0.0007f;
+	destY = originPos.y + deltainDir.y*0.0007f;
+	destZ = originPos.z + deltainDir.z*0.0007f;
+
+	world = XMMatrixTranslation(destX, destY, destZ);
+
+	GameObjectList[0]->SetWorldMatrix(world);
+}
 
 
 bool Display(D3DUtility* mApp)
 {
 	if (mApp->device)
 	{
-		float camSpeed = 1.0f / 360;
-		if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //响应键盘左方向键
-			CamdeltaX -= camSpeed;
-		if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //响应键盘右方向键
-			CamdeltaX += camSpeed;
-		if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //响应键盘上方向键
-			CamdeltaZ += camSpeed;
-		if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //响应键盘下方向键
-			CamdeltaZ -= camSpeed;
-
-		cam->SetCamPosition(CamdeltaX, CamdeltaZ);
-		//cam->Follow();
+	
+		Update();		//cam->SetCamPosition(CamdeltaX, CamdeltaZ);
+		cam->Follow();
 
 		int count = GameObjectList.size();
 		for (int i = 0; i < count; i++)

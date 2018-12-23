@@ -10,6 +10,14 @@ cbuffer MatrixBuffer
 	matrix Projection;    //投影坐标变换矩阵
 	float4 EyePosition;   //视点位置
 };
+Texture2D Texture;       //纹理变量
+
+SamplerState Sampler     //定义采样器
+{
+	Filter = MIN_MAG_MIP_LINEAR;   //采用线性过滤
+	AddressU = WRAP;              //寻址模式为Clamp
+	AddressV = MIRROR;              //寻址模式为Clamp
+};
 
 //材质信息的常量缓存
 cbuffer MaterialBuffer
@@ -46,6 +54,7 @@ struct VS_INPUT
 {
 	float4 Pos : POSITION;   //顶点坐标
 	float3 Norm : NORMAL;    //法向量
+	float2 Tex : TEXCOORD0;  //纹理
 };
 
 //像素着色器的输入结构
@@ -57,6 +66,8 @@ struct PS_INPUT
 	float4 LightVector : TEXCOORD2;		//对点光源和聚光灯有效，
 										//前3各分量记录“光照向量”
 										//最后一个分量记录光照距离
+
+	float2 Tex : TEXCOORD3;      //纹理
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,6 +96,7 @@ PS_INPUT VS(VS_INPUT input)
 	output.LightVector = normalize(output.LightVector);    //将光照方向归一化
 	output.LightVector.w = length(LightPosition - worldPosition);  //获取光照距离
 
+	output.Tex = input.Tex;       //纹理设置
 	return output;
 }
 
@@ -128,7 +140,9 @@ float4 PSDirectionalLight(PS_INPUT input) : SV_Target
 	//最终颜色由境光，漫反射，镜面光颜色三者相加得到
 	//saturate表示饱和处理，结果大于1就变成1，小于0就变成0，以保证结果在0-1之间
 	finalColor = saturate(ambientColor + diffuseColor + specularColor);
-	return finalColor;
+	
+	return finalColor*Texture.Sample(Sampler, input.Tex);    //返回纹理
+
 }
 
 

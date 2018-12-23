@@ -1,14 +1,19 @@
 #include "d3dUtility.h"
 #include "GameObject.h"
-#include <vector>
-
+#include "Camera.h"
+//#include "debugprint.h"
+#include <iostream>
+Camera* cam;
 std::vector<GameObject*> GameObjectList;
-float fMoveX = 0.0f;
-float fMoveY = 0.0f;
-float fMoveZ = 0.0f;
-__m128 MoveX = _mm_set1_ps(fMoveX);
-__m128 MoveY = _mm_set1_ps(fMoveY);
-__m128 MoveZ = _mm_set1_ps(fMoveZ);
+//float fMoveX = 0.0f;
+//float fMoveY = 0.0f;
+//float fMoveZ = 0.0f;
+//__m128 MoveX = _mm_set1_ps(fMoveX);
+//__m128 MoveY = _mm_set1_ps(fMoveY);
+//__m128 MoveZ = _mm_set1_ps(fMoveZ);
+
+float CamdeltaX = 3.0f;
+float CamdeltaZ = -5.0f;
 class  MainScene : public D3DUtility
 {
 public:
@@ -42,29 +47,49 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_KEYDOWN:
 	{
+		//计算player到Boss的方向
+		GameObject* bo = GameObjectList[1];
+		GameObject* pl = GameObjectList[0];
+		XMFLOAT4 originPos;//Boss原本的位置
+		XMStoreFloat4(&originPos, pl->GetPos());
+		XMVECTOR dir = bo->GetPos() - pl->GetPos();
+		
+		XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
+		XMVECTOR front = XMVector3Normalize(dir);
+		XMVECTOR back = -front;
+		XMVECTOR right = XMVector3Cross(dir, tmp);
+		XMVECTOR left = -right;
+		//float playerSpeed = 1.0f;
+
+		XMVECTOR moveVector=XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
 		if (wParam == 'W')//W 0x57
 		{
-			fMoveZ += 0.1f;
+			moveVector +=  front;
 		}
 		if (wParam == 'S')//W 0x57
 		{
-			fMoveZ -= 0.1f;
+			moveVector +=  back;
 		}
 		if (wParam == 'A')//W 0x57
 		{
-			fMoveX -= 0.1f;
+			moveVector +=  left;
 		}
 		if (wParam == 'D')//W 0x57
 		{
-			fMoveX += 0.1f;
+			moveVector +=  right;
 		}
 		XMMATRIX world;
-		//world = XMMatrixIdentity();
-		world = XMMatrixTranslation(fMoveX, fMoveY, fMoveZ);
+		XMFLOAT4 deltainDir;
+		XMStoreFloat4(&deltainDir, moveVector); //从Boss指向player的向量  
+		float destX; float destY; float destZ;//Boss应该移动到的位置
+		destX = originPos.x + deltainDir.x*0.1f;
+		destY = originPos.y + deltainDir.y*0.1f;
+		destZ = originPos.z + deltainDir.z*0.1f;
 
-		//__m128 MoveX = _mm_set1_ps(fMoveX);
+		world = XMMatrixTranslation(destX, destY, destZ);
+		
 		GameObjectList[0]->SetWorldMatrix(world);
 		break;
 	}
@@ -90,20 +115,43 @@ bool Display(D3DUtility* mApp)
 {
 	if (mApp->device)
 	{
+		float camSpeed = 1.0f / 360;
+		if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //响应键盘左方向键
+			CamdeltaX -= camSpeed;
+		if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //响应键盘右方向键
+			CamdeltaX += camSpeed;
+		if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //响应键盘上方向键
+			CamdeltaZ += camSpeed;
+		if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //响应键盘下方向键
+			CamdeltaZ -= camSpeed;
+
+		cam->SetCamPosition(CamdeltaX, CamdeltaZ);
+		//cam->Follow();
+
+		int count = GameObjectList.size();
+		for (int i = 0; i < count; i++)
+		{
+			if (strcmp(GameObjectList[i]->tag, "boss") == 0)
+			{
+				GameObjectList[i]->BOSS();//每次追踪一点点
+			}
+		}
+
 		//声明一个数组存放颜色信息，4个元素分别表示红，绿，蓝以及alpha
 		float ClearColor[4] = { 0.2f, 0.125f, 0.3f, 1.0f };
 		//清除渲染目标视图
 		mApp->immediateContext->ClearRenderTargetView(mApp->renderTargetView.Get(), ClearColor);
-
+		mApp->immediateContext->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 		//for (auto iter = GameObjectList.cbegin(); iter != GameObjectList.cend(); iter++)
 		//{
 		//	&iter->;
 		//}
-		int count = GameObjectList.size();
+		//int count = GameObjectList.size();
 		for (int i = 0; i < count; i++)
 		{
 			GameObjectList[i]->technique->GetPassByIndex(0)->Apply(0, mApp->immediateContext.Get());
-			mApp->immediateContext->DrawIndexed(36, 0, 0);
+			//mApp->immediateContext->DrawIndexed(36, 0, 0);
+			mApp->immediateContext->Draw(36, 0);   //绘制立方体
 		}
 	
 		mApp->swapChain->Present(0, 0);
@@ -130,9 +178,10 @@ int MainScene::Running()
 		}
 		else
 		{
-			Display(mApp);
-			//OutputDebugString(L"!!!ALIVE!!\r\n");
 			//在这里进行动画计算和渲染
+			//Update();//动画计算
+			Display(mApp);//渲染
+			
 		}
 	}
 
@@ -152,11 +201,28 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	MainScene mainscene(hInstance);
 	mainscene.InitApp();
 
-	GameObject* cube = new GameObject(mainscene.mApp);
+	GameObject* player = new GameObject(mainscene.mApp);
 	GameObject* boss = new GameObject(mainscene.mApp);
 
-	GameObjectList.push_back(cube);
+	const WCHAR *pwcsName = L"player.dds";
+	player->buildTexture(pwcsName);
+	strcpy_s(player->tag,"player");
+
+
+	pwcsName=L"boss.dds";
+	boss->buildTexture(pwcsName);
+	strcpy_s(boss->tag, "boss");
+
+
+	
+
+	GameObjectList.push_back(player);
 	GameObjectList.push_back(boss);
+
+	boss->communicateList =&GameObjectList;
+
+	player->SetWorldMatrix(XMMatrixTranslation(5, 0, 0));
+	cam = new Camera(GameObjectList);
 
 
 	mainscene.Running();

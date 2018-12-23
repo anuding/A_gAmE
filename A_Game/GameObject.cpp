@@ -1,11 +1,41 @@
 #include "GameObject.h"
 #include <DDSTextureLoader.h>
+void GameObject::BOSS()
+{
+	int count = communicateList->size();
+
+	for (std::vector<GameObject*>::iterator it = communicateList->begin(); it != communicateList->end(); it++)
+	{
+		if (strcmp((*it)->tag, "player") == 0)
+		{
+			//找到player对象,获取player的Pos
+			XMVECTOR PlayerPos = (*it)->GetPos();
+			XMVECTOR BossPos = this->GetPos();
+			XMVECTOR Dir = XMVector3Normalize(PlayerPos - BossPos);
+			XMFLOAT4 deltainDir;
+			XMStoreFloat4(&deltainDir, Dir); //从Boss指向player的向量  
+
+			XMFLOAT4 originPos;//Boss原本的位置
+			XMStoreFloat4(&originPos, BossPos);
+			//Boss原本的位置 + 从Boss指向player的向量*0.0001f = Boss应该移动到的位置
+
+			float destX; float destY; float destZ;//Boss应该移动到的位置
+			destX = originPos.x + deltainDir.x*0.0001f;
+			destY = originPos.y + deltainDir.y*0.0001f;
+			destZ = originPos.z + deltainDir.z*0.0001f;
+			world = XMMatrixTranslation(destX, destY, destZ);
+			SetWorldMatrix(world);
+		}
+	}
+}
 GameObject::GameObject(D3DUtility* app)
 {
 	mapp = app;
 	ID3D11Device* device = app->device.Get();
 	buildEffect(device);
-	buildTexture();
+
+	const WCHAR *pwcsName = L"box.dds";
+	buildTexture(pwcsName);
 	buildInputlayout(device);
 	buildVertexBufferandIndicesBuffer(device);
 	buildMaterialandLight();
@@ -19,26 +49,32 @@ GameObject::~GameObject()
 
 }
 
-void GameObject::SetWorldMatrix(XMMATRIX world)
+void GameObject::SetWorldMatrix(XMMATRIX mworld)
 {
-	//Matrix Stuff
-	/*world = XMMatrixIdentity();*/
-	//world = XMMatrixRotationZ(0.5f);
-	XMVECTOR Eye = XMVectorSet(3.0f, 5.0f, -5.0f, 0.0f);
-	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	view = XMMatrixLookAtLH(Eye, At, Up);
-	projection = XMMatrixPerspectiveFovLH(XM_PIDIV2,
-		800.0f / 600.0f,
-		0.01f,
-		100.0f);
-	effect->GetVariableByName("World")->AsMatrix()
-		->SetMatrix((float*)&world);
-	effect->GetVariableByName("View")->AsMatrix()
-		->SetMatrix((float*)&view);
-	effect->GetVariableByName("Projection")->AsMatrix()
-		->SetMatrix((float*)&projection);
+	world = mworld;
+	XMVECTOR tmp = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+	pos = XMVector4Transform(tmp, mworld);
 	Setup();
+}
+
+void GameObject::SetViewMatrix(XMMATRIX mview)
+{
+	view = mview;
+	Setup();
+}
+
+void GameObject::SetProjMatrix(XMMATRIX mproj)
+{
+	projection = mproj;
+	Setup();
+}
+
+
+
+
+XMVECTOR GameObject::GetPos()
+{
+	return pos;
 }
 
 void GameObject::buildEffect(ID3D11Device* device)
@@ -206,10 +242,10 @@ void GameObject::buildMaterialandLight()
 	technique = effect->GetTechniqueByName("T_DirLight");
 }
 
-void GameObject::buildTexture()
+void GameObject::buildTexture(const wchar_t* filename)
 {
 	DirectX::CreateDDSTextureFromFile(mapp->device.Get(),
-		L"box.dds", nullptr, &texture);
+		filename, nullptr, &texture);
 
 	//将纹理设置到“Texture”
 	effect->GetVariableByName("Texture")->AsShaderResource()->SetResource(texture);
@@ -219,6 +255,12 @@ void GameObject::buildTexture()
 
 bool GameObject::Setup()
 {
+	effect->GetVariableByName("World")->AsMatrix()
+		->SetMatrix((float*)&world);
+	effect->GetVariableByName("View")->AsMatrix()
+		->SetMatrix((float*)&view);
+	effect->GetVariableByName("Projection")->AsMatrix()
+		->SetMatrix((float*)&projection);
 	mapp->immediateContext->IASetInputLayout(vertexLayout);
 	mapp->immediateContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	mapp->immediateContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R16_UINT, 0);

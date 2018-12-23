@@ -1,5 +1,4 @@
 #pragma once
-
 #include "d3dUtility.h"
 //#include <DirectXMath.h>
 //using namespace DirectX;
@@ -8,7 +7,6 @@ struct  Vertex
 {
 	XMFLOAT3 Pos;
 	XMFLOAT3 Normal;
-
 	XMFLOAT2 Tex;
 
 };
@@ -47,11 +45,17 @@ struct Light
 class GameObject
 {
 public:
-	
+
+	std::vector<GameObject*>* communicateList;
+	char tag[20]="";
+
+	void BOSS();
 	GameObject(D3DUtility* app);
 	~GameObject();
 	//void SetPosition();
-	void SetWorldMatrix(XMMATRIX world);
+	void SetWorldMatrix(XMMATRIX mworld);
+	void SetViewMatrix(XMMATRIX mview);
+	void SetProjMatrix(XMMATRIX mproj);
 	//着色器
 	ID3D11VertexShader* m_VertexShader = nullptr;
 	ID3D11PixelShader* m_PixelShader = nullptr;
@@ -62,18 +66,28 @@ public:
 	ID3DX11EffectTechnique* technique = nullptr;
 	ID3D11Buffer* vertexBuffer=nullptr;
 	ID3D11Buffer* indexBuffer = nullptr;
+
 	//声明三个坐标系矩阵
-	XMMATRIX world;         //用于世界变换的矩阵
-	XMMATRIX view;          //用于观察变换的矩阵
-	XMMATRIX projection;    //用于投影变换的矩阵
+	XMMATRIX world= XMMatrixIdentity();         //用于世界变换的矩阵
+	XMMATRIX view= XMMatrixIdentity();      //用于观察变换的矩阵
+	XMMATRIX projection= XMMatrixIdentity();    //用于投影变换的矩阵
 
 
-	 UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
 	D3DX11_TECHNIQUE_DESC techDesc;
 	D3DUtility* mapp;
+
+	XMVECTOR GetPos();
+	void GetRota();
+	void SetPos();
+	void SetRota();
 private:
+	XMVECTOR pos= XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
+	XMVECTOR rota;
+
 	//声明材质和光照的全局对象
 	Material		material;      //材质
 	Light			light;      //光源数组
@@ -82,7 +96,9 @@ private:
 	void buildInputlayout(ID3D11Device* device);
 	void buildVertexBufferandIndicesBuffer(ID3D11Device* device);
 	void buildMaterialandLight();
-	void buildTexture();
+	
+public:
+	void buildTexture(const wchar_t* filename);
 	bool Setup();
 };
 

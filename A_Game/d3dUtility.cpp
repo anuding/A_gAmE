@@ -152,11 +152,47 @@ HRESULT D3DUtility::InitD3D(HINSTANCE hInstance, int width, int height, ID3D11Re
 		return false;
 	}
 
-	//将渲染目标视图绑定到渲染管线  
-	(*immediateContext)->OMSetRenderTargets(1,                   //绑定的目标视图的个数
-		renderTargetView,    //渲染目标视图，InitD3D函数传递的实参 
-		NULL);              //设置为NULL表示不绑定深度模板
+	////将渲染目标视图绑定到渲染管线  
+	//(*immediateContext)->OMSetRenderTargets(1,                   //绑定的目标视图的个数
+	//	renderTargetView,    //渲染目标视图，InitD3D函数传递的实参 
+	//	NULL);              //设置为NULL表示不绑定深度模板
+	///////////////////////////////////////////////////////////////////
+//************************增加的步骤************************
+	D3D11_TEXTURE2D_DESC dsDesc;
+	dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;  //这里表示24位用于深度缓存，8位用于模板缓存
+	dsDesc.Width = 800;                             //深度模板缓存的宽度
+	dsDesc.Height = 600;                            //深度模板缓存的高度
+	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;    //绑定标识符
+	dsDesc.MipLevels = 1;
+	dsDesc.ArraySize = 1;
+	dsDesc.CPUAccessFlags = 0;                      //CPU访问标识符，0为默认值
+	dsDesc.SampleDesc.Count = 1;					//多重采样的属性，本例中不采用多重采样即，
+	dsDesc.SampleDesc.Quality = 0;					//所以Count=1，Quality=0
+	dsDesc.MiscFlags = 0;
+	dsDesc.Usage = D3D11_USAGE_DEFAULT;
 
+	//创建深度模板缓存
+	hr = (*device)->CreateTexture2D(&dsDesc, 0, &depthStencilBuffer);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"Create depth stencil buffer failed!", L"ERROR", MB_OK);
+		return false;
+	}
+	//创建深度模板缓存视图
+	hr = (*device)->CreateDepthStencilView(depthStencilBuffer, 0, &depthStencilView);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"Create depth stencil view failed!", L"ERROR", MB_OK);
+		return false;
+	}
+	//将渲染目标视图和深度模板缓存视图绑定到渲染管线
+	(*immediateContext)->OMSetRenderTargets(1,                   //绑定的目标视图的个数
+		renderTargetView,    //渲染目标视图，InitD3D函数传递的实参
+		depthStencilView);  //绑定模板
+
+
+
+	///////////////////////////////////////////////////////
 //第四步，设置视口大小，D3D11默认不会设置视口，此步骤必须手动设置  
 	D3D11_VIEWPORT vp;    //创建一个视口的对象
 	vp.Width = width;     //视口的宽
@@ -169,6 +205,8 @@ HRESULT D3DUtility::InitD3D(HINSTANCE hInstance, int width, int height, ID3D11Re
 	//设置视口
 	(*immediateContext)->RSSetViewports(1,     //视口的个数
 		&vp); //上面创建的视口对象
+
+	// set the render target as the back buffer
 
 	return true;
 	//***********第二部分：初始化D3D结束***************

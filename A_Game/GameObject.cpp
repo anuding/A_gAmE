@@ -8,18 +8,18 @@ void GameObject::BOSS()
 	{
 		if (strcmp((*it)->tag, "player") == 0)
 		{
-			//ÕÒµ½player¶ÔÏó,»ñÈ¡playerµÄPos
+			//ï¿½Òµï¿½playerï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½È¡playerï¿½ï¿½Pos
 			XMVECTOR PlayerPos = (*it)->GetPos();
 			XMVECTOR BossPos = this->GetPos();
 			XMVECTOR Dir = XMVector3Normalize(PlayerPos - BossPos);
 			XMFLOAT4 deltainDir;
-			XMStoreFloat4(&deltainDir, Dir); //´ÓBossÖ¸ÏòplayerµÄÏòÁ¿  
+			XMStoreFloat4(&deltainDir, Dir); //ï¿½ï¿½BossÖ¸ï¿½ï¿½playerï¿½ï¿½ï¿½ï¿½ï¿½  
 
-			XMFLOAT4 originPos;//BossÔ­±¾µÄÎ»ÖÃ
+			XMFLOAT4 originPos;//BossÔ­ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
 			XMStoreFloat4(&originPos, BossPos);
-			//BossÔ­±¾µÄÎ»ÖÃ + ´ÓBossÖ¸ÏòplayerµÄÏòÁ¿*0.0001f = BossÓ¦¸ÃÒÆ¶¯µ½µÄÎ»ÖÃ
+			//BossÔ­ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ + ï¿½ï¿½BossÖ¸ï¿½ï¿½playerï¿½ï¿½ï¿½ï¿½ï¿½*0.0001f = BossÓ¦ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
 
-			float destX; float destY; float destZ;//BossÓ¦¸ÃÒÆ¶¯µ½µÄÎ»ÖÃ
+			float destX; float destY; float destZ;//BossÓ¦ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
 			destX = originPos.x + deltainDir.x*0.0001f;
 			destY = originPos.y + deltainDir.y*0.0001f;
 			destZ = originPos.z + deltainDir.z*0.0001f;
@@ -28,15 +28,19 @@ void GameObject::BOSS()
 		}
 	}
 }
+
 GameObject::GameObject(D3DUtility* app)
 {
 	mapp = app;
 	ID3D11Device* device = app->device.Get();
 	buildEffect(device);
 
+
 	const WCHAR *pwcsName = L"box.dds";
 	buildTexture(pwcsName);
 	buildInputlayout(device);
+
+
 	buildVertexBufferandIndicesBuffer(device);
 	buildMaterialandLight();
 	SetWorldMatrix(XMMatrixIdentity());
@@ -99,19 +103,19 @@ void GameObject::buildEffect(ID3D11Device* device)
 void GameObject::buildInputlayout(ID3D11Device* device)
 {
 	HRESULT hr = S_OK;
-	//ÓÃGetTechniqueByName»ñÈ¡ID3DX11EffectTechniqueµÄ¶ÔÏó
-//ÏÈÉèÖÃÄ¬ÈÏµÄtechniqueµ½Effect
-	technique = effect->GetTechniqueByName("T0");                //Ä¬ÈÏTechnique
+	//ï¿½ï¿½GetTechniqueByNameï¿½ï¿½È¡ID3DX11EffectTechniqueï¿½Ä¶ï¿½ï¿½ï¿½
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½Ïµï¿½techniqueï¿½ï¿½Effect
+	technique = effect->GetTechniqueByName("T0");                //Ä¬ï¿½ï¿½Technique
 
-	//D3DX11_PASS_DESC½á¹¹ÓÃÓÚÃèÊöÒ»¸öEffect Pass
+	//D3DX11_PASS_DESCï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Effect Pass
 	D3DX11_PASS_DESC PassDesc;
-	//ÀûÓÃGetPassByIndex»ñÈ¡Effect Pass
-	//ÔÙÀûÓÃGetDesc»ñÈ¡Effect PassµÄÃèÊö£¬²¢´æÈçPassDesc¶ÔÏóÖÐ
+	//ï¿½ï¿½ï¿½ï¿½GetPassByIndexï¿½ï¿½È¡Effect Pass
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½GetDescï¿½ï¿½È¡Effect Passï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½PassDescï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	technique->GetPassByIndex(0)->GetDesc(&PassDesc);
 	
-	//´´½¨²¢ÉèÖÃÊäÈë²¼¾Ö
-	//ÕâÀïÎÒÃÇ¶¨ÒåÒ»¸öD3D11_INPUT_ELEMENT_DESCÊý×é£¬
-	//ÓÉÓÚÎÒÃÇ¶¨ÒåµÄ¶¥µã½á¹¹°üÀ¨Î»ÖÃ×ø±êºÍ·¨ÏòÁ¿£¬ËùÒÔÕâ¸öÊý×éÀïÓÐÁ½¸öÔªËØ
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë²¼ï¿½ï¿½
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶ï¿½ï¿½ï¿½Ò»ï¿½ï¿½D3D11_INPUT_ELEMENT_DESCï¿½ï¿½ï¿½é£¬
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¶ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½á¹¹ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -137,8 +141,8 @@ void GameObject::buildVertexBufferandIndicesBuffer(ID3D11Device* device)
 {
 	HRESULT hr = S_OK;
 	//2. Create Vertex Buffer and Indices Buffer
-		//ºÍÊµÑé4Ò»Ñù£¬´´½¨¶¥µãÊý×é£¬ÓÉÓÚÃ¿¸ö¶¥µãÓÐ°üº¬ÁË×ø±êºÍÑÕÉ«
-	//µ«ÊÇÓÉÓÚ¶¥µãµÄ·¨ÏòÁ¿²»Í¬£¬ËùÒÔ¼´Ê¹ÊÇÍ¬Ò»¸öÎ»ÖÃµÄÈý¸ö¶¥µãÒ²±ØÐëµ¥¶À¶¨Òå
+		//ï¿½ï¿½Êµï¿½ï¿½4Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½Ð°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½Ê¹ï¿½ï¿½Í¬Ò»ï¿½ï¿½Î»ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ï¿½ëµ¥ï¿½ï¿½ï¿½ï¿½ï¿½
 	Vertex vertices[] =
 	{
 		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f)  ,XMFLOAT2(0.0f, 0.0f) },
@@ -210,35 +214,35 @@ void GameObject::buildVertexBufferandIndicesBuffer(ID3D11Device* device)
 
 void GameObject::buildMaterialandLight()
 {
-	//*************µÚËÄ²½ÉèÖÃ²ÄÖÊºÍ¹âÕÕ***********************
-	// ÉèÖÃ²ÄÖÊ£º3ÖÐ¹âÕÕµÄ·´ÉäÂÊÒÔ¼°¾µÃæ¹â·´ÉäÏµÊý
-	//·´ÉäÂÊÖÐÇ°ÈýÎ»±íÊ¾ºìÂÌÀ¶¹âµÄ·´ÉäÂÊ£¬1±íÊ¾ÍêÈ«·´Éä£¬0±íÊ¾ÍêÈ«ÎüÊÕ
-	material.ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //Ç°ÈýÎ»·Ö±ð±íÊ¾ºìÂÌÀ¶¹âµÄ·´ÉäÂÊ
-	material.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //Í¬ÉÏ
-	material.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);//Í¬ÉÏ
+	//*************ï¿½ï¿½ï¿½Ä²ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ï¿½ÊºÍ¹ï¿½ï¿½ï¿½***********************
+	// ï¿½ï¿½ï¿½Ã²ï¿½ï¿½Ê£ï¿½3ï¿½Ð¹ï¿½ï¿½ÕµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½â·´ï¿½ï¿½Ïµï¿½ï¿½
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Î»ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½Ê£ï¿½1ï¿½ï¿½Ê¾ï¿½ï¿½È«ï¿½ï¿½ï¿½ä£¬0ï¿½ï¿½Ê¾ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½
+	material.ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //Ç°ï¿½ï¿½Î»ï¿½Ö±ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½
+	material.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //Í¬ï¿½ï¿½
+	material.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);//Í¬ï¿½ï¿½
 	material.power = 5.0f;
-	// ÉèÖÃ¹âÔ´
+	// ï¿½ï¿½ï¿½Ã¹ï¿½Ô´
 	Light dirLight;
-	// ·½Ïò¹âÖ»ÐèÒªÉèÖÃ£º·½Ïò¡¢3ÖÖ¹âÕÕÇ¿¶È
-	dirLight.direction = XMFLOAT4(-1.0f, 0.0f, 1.0f, 1.0f); //¹âÕÕ·½Ïò
-	dirLight.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);   //Ç°ÈýÎ»·Ö±ð±íÊ¾ºìÂÌÀ¶¹âµÄÇ¿¶È
-	dirLight.diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);   //Í¬ÉÏ
-	dirLight.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);  //Í¬ÉÏ
+	// ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½Òªï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½3ï¿½Ö¹ï¿½ï¿½ï¿½Ç¿ï¿½ï¿½
+	dirLight.direction = XMFLOAT4(-1.0f, 0.0f, 1.0f, 1.0f); //ï¿½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½
+	dirLight.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);   //Ç°ï¿½ï¿½Î»ï¿½Ö±ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿ï¿½ï¿½
+	dirLight.diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);   //Í¬ï¿½ï¿½
+	dirLight.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);  //Í¬ï¿½ï¿½
 	light = dirLight;
-	//²ÄÖÊÐÅÏ¢µÄ³£Á¿»º´æÖÐµÄ²ÄÖÊÐÅÏ¢ÉèÖÃµ½Effect¿ò¼ÜÖÐ-----------------------------
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÐµÄ²ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½Ãµï¿½Effectï¿½ï¿½ï¿½ï¿½ï¿½-----------------------------
 	effect->GetVariableByName("MatAmbient")->AsVector()->SetFloatVector((float*)&(material.ambient));
 	effect->GetVariableByName("MatDiffuse")->AsVector()->SetFloatVector((float*)&(material.diffuse));
 	effect->GetVariableByName("MatSpecular")->AsVector()->SetFloatVector((float*)&(material.specular));
 	effect->GetVariableByName("MatPower")->AsScalar()->SetFloat(material.power);
 
-	//Ê×ÏÈ½«¹âÕÕÀàÐÍ£¬»·¾³¹âÇ¿¶È£¬ÂþÉä¹âÇ¿¶È£¬¾µÃæ¹âÇ¿¶ÈÉèÖÃµ½EffectÖÐ
+	//ï¿½ï¿½ï¿½È½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿ï¿½È£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½Effectï¿½ï¿½
 	effect->GetVariableByName("LightAmbient")->AsVector()->SetFloatVector((float*)&(light.ambient));
 	effect->GetVariableByName("LightDiffuse")->AsVector()->SetFloatVector((float*)&(light.diffuse));
 	effect->GetVariableByName("LightSpecular")->AsVector()->SetFloatVector((float*)&(light.specular));
 
-	//·½Ïò¹âÖ»ÐèÒª¡°·½Ïò¡±Õâ¸öÊôÐÔ¼´¿É
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 	effect->GetVariableByName("LightDirection")->AsVector()->SetFloatVector((float*)&(light.direction));
-	//½«·½Ïò¹âµÄTectniqueÉèÖÃµ½Effect
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Tectniqueï¿½ï¿½ï¿½Ãµï¿½Effect
 	technique = effect->GetTechniqueByName("T_DirLight");
 }
 
@@ -247,9 +251,9 @@ void GameObject::buildTexture(const wchar_t* filename)
 	DirectX::CreateDDSTextureFromFile(mapp->device.Get(),
 		filename, nullptr, &texture);
 
-	//½«ÎÆÀíÉèÖÃµ½¡°Texture¡±
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½Textureï¿½ï¿½
 	effect->GetVariableByName("Texture")->AsShaderResource()->SetResource(texture);
-	technique = effect->GetTechniqueByName("T_DirLight");                //Ä¬ÈÏTechnique
+	technique = effect->GetTechniqueByName("T_DirLight");                //Ä¬ï¿½ï¿½Technique
 
 }
 

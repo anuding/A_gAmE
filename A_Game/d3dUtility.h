@@ -2,6 +2,9 @@
 #ifndef __D3DUtilityH__
 #define __D3DUtilityH__
 
+
+#include <string>
+#include <vector>
 #include <Windows.h>
 #include <wrl.h>
 //数学库相关头文件
@@ -40,7 +43,8 @@ public:
 	static D3DUtility* GetApp();
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)=0;
 
-
+	ID3D11DepthStencilView* depthStencilView;  //深度模板视图
+	ID3D11Texture2D* depthStencilBuffer;       //深度缓存
 
 
 	Microsoft::WRL::ComPtr<ID3D11Device> device = nullptr;                    //D3D11设备指针

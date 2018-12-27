@@ -8,7 +8,7 @@ void GameObject::BOSS()
 	{
 		if (strcmp((*it)->tag, "player") == 0)
 		{
-			//�ҵ�player����,��ȡplayer��Pos
+			
 			XMVECTOR PlayerPos = (*it)->GetPos();
 			XMVECTOR BossPos = this->GetPos();
 			XMVECTOR Dir = XMVector3Normalize(PlayerPos - BossPos);
@@ -28,6 +28,7 @@ void GameObject::BOSS()
 		}
 	}
 }
+
 
 GameObject::GameObject(D3DUtility* app)
 {

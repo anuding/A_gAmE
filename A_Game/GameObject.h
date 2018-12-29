@@ -1,105 +1,257 @@
 #pragma once
 #include "d3dUtility.h"
-//#include <DirectXMath.h>
-//using namespace DirectX;
+
 //定义一个顶点结构，这个顶点包含坐标和法向量
-struct  Vertex
+struct  VertexForCube
 {
 	XMFLOAT3 Pos;
-	XMFLOAT3 Normal;
-	XMFLOAT2 Tex;
-
+	XMFLOAT4 Color;
 };
-//这是材质的对各种光反射率
-struct Material
+
+struct ConstantBuffer
 {
-	XMFLOAT4 ambient;		//材质环境光反射率
-	XMFLOAT4 diffuse;		//材质漫射光反射率
-	XMFLOAT4 specular;		//材质镜面光反射率
-	float    power;			//镜面光反射系数
+	XMMATRIX world;
+	XMMATRIX view;
+	XMMATRIX proj;
 };
 
-//光源结构，这个结构包括了3种光源的所有属性
-//但不是每种属性都会用到，比如方向光就不会用到
-//光源位置，以及衰减因子等
+const D3D11_INPUT_ELEMENT_DESC inputLayout[] = {
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+};
+
+
+struct Vertex	//Overloaded Vertex Structure
+{
+	Vertex() {}
+	Vertex(float x, float y, float z,
+		float u, float v,
+		float nx, float ny, float nz,
+		float tx, float ty, float tz)
+		: pos(x, y, z), texCoord(u, v), normal(nx, ny, nz),
+		tangent(tx, ty, tz) {}
+
+	XMFLOAT3 pos;
+	XMFLOAT2 texCoord;
+	XMFLOAT3 normal;
+	XMFLOAT3 tangent;
+	XMFLOAT3 biTangent;
+
+	// Will not be sent to shader
+	int StartWeight;
+	int WeightCount;
+};
+
+
+struct Joint
+{
+	std::wstring name;
+	int parentID;
+
+	XMFLOAT3 pos;
+	XMFLOAT4 orientation;
+};
+struct BoundingBox
+{
+	XMFLOAT3 min;
+	XMFLOAT3 max;
+};
+
+struct FrameData
+{
+	int frameID;
+	std::vector<float> frameData;
+};
+struct AnimJointInfo
+{
+	std::wstring name;
+	int parentID;
+
+	int flags;
+	int startIndex;
+};
+
+struct ModelAnimation
+{
+	int numFrames;
+	int numJoints;
+	int frameRate;
+	int numAnimatedComponents;
+
+	float frameTime;
+	float totalAnimTime;
+	float currAnimTime;
+
+	std::vector<AnimJointInfo> jointInfo;
+	std::vector<BoundingBox> frameBounds;
+	std::vector<Joint>	baseFrameJoints;
+	std::vector<FrameData>	frameData;
+	std::vector<std::vector<Joint>> frameSkeleton;
+};
+///////////////**************new**************////////////////////
+
+struct Weight
+{
+	int jointID;
+	float bias;
+	XMFLOAT3 pos;
+	///////////////**************new**************////////////////////
+	XMFLOAT3 normal;
+	///////////////**************new**************////////////////////
+};
+
+struct ModelSubset
+{
+	int texArrayIndex;
+	int numTriangles;
+
+	std::vector<Vertex> vertices;
+	std::vector<XMFLOAT3> jointSpaceNormals;
+	std::vector<DWORD> indices;
+	std::vector<Weight> weights;
+
+	std::vector<XMFLOAT3> positions;
+
+	ID3D11Buffer* vertBuff;
+	ID3D11Buffer* indexBuff;
+};
+
+struct Model3D
+{
+	int numSubsets;
+	int numJoints;
+
+	std::vector<Joint> joints;
+	std::vector<ModelSubset> subsets;
+
+	///////////////**************new**************////////////////////
+	std::vector<ModelAnimation> animations;
+	///////////////**************new**************////////////////////
+};
 struct Light
 {
-	int type;				//光源类型，方向光：0，点光源：1，聚光灯：2
-
-	XMFLOAT4 position;		//光源位置
-	XMFLOAT4 direction;		//方向向量
-
-	XMFLOAT4 ambient;		//环境光强度
-	XMFLOAT4 diffuse;		//漫射光强度
-	XMFLOAT4 specular;		//镜面光强度
-
-	float attenuation0;		//常量衰减因子
-	float attenuation1;		//一次衰减因子
-	float attenuation2;		//二次衰减因子
-
-	float alpha;			//聚光灯内锥角度
-	float beta;				//聚光灯外锥角度
-	float fallOff;			//聚光灯衰减系数，一般取值为1.0
-
+	Light()
+	{
+		ZeroMemory(this, sizeof(Light));
+	}
+	XMFLOAT3 pos;
+	float range;
+	XMFLOAT3 dir;
+	float cone;
+	XMFLOAT3 att;
+	float pad2;
+	XMFLOAT4 ambient;
+	XMFLOAT4 diffuse;
 };
+
+
+//Create effects constant buffer's structure//
+struct cbPerObject
+{
+	XMMATRIX  WVP;
+	XMMATRIX World;
+
+	//These will be used for the pixel shader
+	XMFLOAT4 difColor;
+	BOOL hasTexture;
+	//Because of HLSL structure packing, we will use windows BOOL
+	//instead of bool because HLSL packs things into 4 bytes, and
+	//bool is only one byte, where BOOL is 4 bytes
+	BOOL hasNormMap;
+};
+struct cbPerFrame
+{
+	Light  light;
+};
+
+
+
 class GameObject
 {
 public:
-
 	std::vector<GameObject*>* communicateList;
 	char tag[20]="";
 
 	void BOSS();
 	GameObject(D3DUtility* app);
 	~GameObject();
-	//void SetPosition();
+
 	void SetWorldMatrix(XMMATRIX mworld);
 	void SetViewMatrix(XMMATRIX mview);
 	void SetProjMatrix(XMMATRIX mproj);
 	//着色器
-	ID3D11VertexShader* m_VertexShader = nullptr;
-	ID3D11PixelShader* m_PixelShader = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;	// 顶点着色器
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;		// 像素着色器
 
-	//Effect相关全局指针
-	ID3D11InputLayout* vertexLayout = nullptr;
-	ID3DX11Effect* effect = nullptr;
-	ID3DX11EffectTechnique* technique = nullptr;
-	ID3D11Buffer* vertexBuffer=nullptr;
-	ID3D11Buffer* indexBuffer = nullptr;
+	ID3D11VertexShader* VS;
+	ID3D11PixelShader* PS;//MD5专用
+	
+	ID3D10Blob* VS_Buffer = nullptr;
+	ID3D10Blob* PS_Buffer = nullptr;
+	//输入布局
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> mVertexLayout;	// 顶点输入布局
+	ID3D11InputLayout* vertLayout;//MD5专用
 
-	//声明三个坐标系矩阵
-	XMMATRIX world= XMMatrixIdentity();         //用于世界变换的矩阵
-	XMMATRIX view= XMMatrixIdentity();      //用于观察变换的矩阵
-	XMMATRIX projection= XMMatrixIdentity();    //用于投影变换的矩阵
+	//资源
+	Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer;			// 顶点缓冲区
+	Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer;			// 索引缓冲区
+	Microsoft::WRL::ComPtr<ID3D11Buffer> mConstantBuffer;		// 常量缓冲区
+	
+	ID3D11Buffer* cbPerObjectBuffer;
+	ID3D11Buffer* cbPerFrameBuffer;//MD5专用
 
+	ConstantBuffer mCBuffer;	// 用于修改GPU常量缓冲区的变量
 
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-
-	D3DX11_TECHNIQUE_DESC techDesc;
 	D3DUtility* mapp;
 
 	XMVECTOR GetPos();
 	void GetRota();
 	void SetPos();
 	void SetRota();
+
+
 private:
+
+	XMVECTOR camPosition;
+	XMVECTOR camTarget;
+	XMVECTOR camUp;
+	XMMATRIX camView;
+	XMMATRIX camProjection;
+
+
+	ID3D11Device* dev;
+	ID3D11DeviceContext* con;
+	Model3D NewMD5Model;
+	Light light;
+
+	cbPerObject cbPerObj;
+	cbPerFrame constbuffPerFrame;
+
+	std::vector<ID3D11ShaderResourceView*> meshSRV;
+	std::vector<std::wstring> textureNameArray;
+
 	XMVECTOR pos= XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+	bool InitEffect();	
+	bool InitResource();
+	bool InitMd5();
 
-	XMVECTOR rota;
 
-	//声明材质和光照的全局对象
-	Material		material;      //材质
-	Light			light;      //光源数组
-	ID3D11ShaderResourceView* texture = nullptr;      //纹理
-	void buildEffect(ID3D11Device* device);
-	void buildInputlayout(ID3D11Device* device);
-	void buildVertexBufferandIndicesBuffer(ID3D11Device* device);
-	void buildMaterialandLight();
-	
+	XMMATRIX meshWorld;
+	XMMATRIX Rotation;
+	XMMATRIX Scale;
+	XMMATRIX Translation;
+	XMMATRIX smilesWorld;
+	XMMATRIX WVP;
 public:
-	void buildTexture(const wchar_t* filename);
 	bool Setup();
+	void DrawMyself();
+	//LoadMD5Model() function prototype
+	bool LoadMD5Model(std::wstring filename,
+		Model3D& MD5Model,
+		std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
+		std::vector<std::wstring> texFileNameArray);
+	void UpdateMd5();
+	void DrawMd5();
 };
 
 //this is another test

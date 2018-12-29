@@ -1,51 +1,18 @@
 #include "GameObject.h"
 #include <DDSTextureLoader.h>
-void GameObject::BOSS()
-{
-	int count = communicateList->size();
 
-	for (std::vector<GameObject*>::iterator it = communicateList->begin(); it != communicateList->end(); it++)
-	{
-		if (strcmp((*it)->tag, "player") == 0)
-		{
-			//�ҵ�player����,��ȡplayer��Pos
-			XMVECTOR PlayerPos = (*it)->GetPos();
-			XMVECTOR BossPos = this->GetPos();
-			XMVECTOR Dir = XMVector3Normalize(PlayerPos - BossPos);
-			XMFLOAT4 deltainDir;
-			XMStoreFloat4(&deltainDir, Dir); //��Bossָ��player�����  
-
-			XMFLOAT4 originPos;//Bossԭ����λ��
-			XMStoreFloat4(&originPos, BossPos);
-			//Bossԭ����λ�� + ��Bossָ��player�����*0.0001f = BossӦ���ƶ�����λ��
-
-			float destX; float destY; float destZ;//BossӦ���ƶ�����λ��
-			destX = originPos.x + deltainDir.x*0.0001f;
-			destY = originPos.y + deltainDir.y*0.0001f;
-			destZ = originPos.z + deltainDir.z*0.0001f;
-			world = XMMatrixTranslation(destX, destY, destZ);
-			SetWorldMatrix(world);
-		}
-	}
-}
 
 GameObject::GameObject(D3DUtility* app)
 {
 	mapp = app;
-	ID3D11Device* device = app->device.Get();
-	buildEffect(device);
+	dev = app->device.Get();
+	con = app->immediateContext.Get();
 
+	//InitEffect();
+	//InitResource();
+	LoadMD5Model(L"hellknight.md5mesh", NewMD5Model, meshSRV, textureNameArray);
+	InitMd5();
 
-	const WCHAR *pwcsName = L"box.dds";
-	buildTexture(pwcsName);
-	buildInputlayout(device);
-
-
-	buildVertexBufferandIndicesBuffer(device);
-	buildMaterialandLight();
-	SetWorldMatrix(XMMatrixIdentity());
-	
-	
 }
 
 GameObject::~GameObject()
@@ -55,220 +22,755 @@ GameObject::~GameObject()
 
 void GameObject::SetWorldMatrix(XMMATRIX mworld)
 {
-	world = mworld;
+	/*world = mworld;
+	cbPerObj.World = mworld;
 	XMVECTOR tmp = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	pos = XMVector4Transform(tmp, mworld);
-	Setup();
+	Setup();*/
 }
 
 void GameObject::SetViewMatrix(XMMATRIX mview)
 {
-	view = mview;
-	Setup();
+	/*view = mview;
+	cbPerObj.View = mview;
+	Setup();*/
 }
 
 void GameObject::SetProjMatrix(XMMATRIX mproj)
 {
-	projection = mproj;
-	Setup();
+	//projection = mproj;
+	///*cbPerObj.Proj = mproj;*/
+	//Setup();
 }
-
-
-
 
 XMVECTOR GameObject::GetPos()
 {
 	return pos;
 }
 
-void GameObject::buildEffect(ID3D11Device* device)
+bool GameObject::InitEffect()
 {
-	//1.Create effect instance from .fx
-	HRESULT hr = S_OK;
-	ID3DBlob* pTechBLob = NULL;
 	ID3DBlob* compilationMsgs = nullptr;
+	HRESULT hr = S_OK;
 
-	hr = D3DX11CompileEffectFromFile(
-		L"Shader/TextureAndLightShader.fx",
-		nullptr, nullptr,
-		D3DCOMPILE_ENABLE_STRICTNESS, 0, device, &effect, &compilationMsgs);
-	if (FAILED(hr))
-	{
-		//OutputDebugString((char*)compilationMsgs->GetBufferPointer());
-		MessageBoxA(0, (char*)compilationMsgs->GetBufferPointer(), 0, 0);
-		::MessageBox(NULL, L"fx load failed!!", L"ERROR", MB_OK);
-	}
+	D3DCompileFromFile(L"Shader/Shader.fx", 0, 0, "VS", "vs_5_0", 0, 0, &VS_Buffer, &compilationMsgs);
+	D3DCompileFromFile(L"Shader/Shader.fx", 0, 0, "PS", "ps_5_0", 0, 0, &PS_Buffer, &compilationMsgs);
+	//Create the Shader Objects
+	hr = dev->CreateVertexShader(VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), NULL, &mVertexShader);
+	hr = dev->CreatePixelShader(PS_Buffer->GetBufferPointer(), PS_Buffer->GetBufferSize(), NULL, &mPixelShader);
+
+	//create input layout
+	dev->CreateInputLayout(inputLayout, ARRAYSIZE(inputLayout),
+		VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), mVertexLayout.GetAddressOf());
+
+
+
+	return true;
 }
 
-void GameObject::buildInputlayout(ID3D11Device* device)
+bool GameObject::InitResource()
 {
-	HRESULT hr = S_OK;
-	//��GetTechniqueByName��ȡID3DX11EffectTechnique�Ķ���
-//������Ĭ�ϵ�technique��Effect
-	technique = effect->GetTechniqueByName("T0");                //Ĭ��Technique
-
-	//D3DX11_PASS_DESC�ṹ��������һ��Effect Pass
-	D3DX11_PASS_DESC PassDesc;
-	//����GetPassByIndex��ȡEffect Pass
-	//������GetDesc��ȡEffect Pass�����������PassDesc������
-	technique->GetPassByIndex(0)->GetDesc(&PassDesc);
-	
-	//�������������벼��
-	//�������Ƕ���һ��D3D11_INPUT_ELEMENT_DESC���飬
-	//�������Ƕ���Ķ���ṹ���λ�����ͷ������������������������Ԫ��
-	D3D11_INPUT_ELEMENT_DESC layout[] =
+	VertexForCube vertices[] =
 	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) }
 	};
-	UINT numElements = ARRAYSIZE(layout);
-
-	hr=device->CreateInputLayout(
-		layout,
-		numElements,
-		PassDesc.pIAInputSignature,
-		PassDesc.IAInputSignatureSize,
-		&vertexLayout
-	);
-	if (FAILED(hr))
-	{
-		::MessageBox(NULL, L"input layout creation failed!!", L"ERROR", MB_OK);
-	}
-}
-
-void GameObject::buildVertexBufferandIndicesBuffer(ID3D11Device* device)
-{
-	HRESULT hr = S_OK;
-	//2. Create Vertex Buffer and Indices Buffer
-		//��ʵ��4һ�����������飬����ÿ����а���������ɫ
-	//�������ڶ���ķ������ͬ�����Լ�ʹ��ͬһ��λ�õ�����Ҳ���뵥�����
-	Vertex vertices[] =
-	{
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f)  ,XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f)  ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f) ,XMFLOAT2(0.0f, 1.0f) },
-
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f)   , XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f)  , XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f)  , XMFLOAT2(1.0f, 1.0f) },
-
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)  ,XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f),XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) ,XMFLOAT2(0.0f, 1.0f) },
-
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)  , XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f) , XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f)   , XMFLOAT2(1.0f, 1.0f) },
-
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  ,XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  ,XMFLOAT2(0.0f, 1.0f) },
-
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) ,XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f) ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f)  ,XMFLOAT2(1.0f, 1.0f) },
-
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)    ,XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)    ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)   ,XMFLOAT2(0.0f, 1.0f) },
-
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)     ,XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)    ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f)    ,XMFLOAT2(1.0f, 1.0f) },
-
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f)  ,XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f)  ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) ,XMFLOAT2(0.0f, 1.0f) },
-
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f)   ,XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f)  ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f)  ,XMFLOAT2(1.0f, 1.0f) },
-
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f)     ,XMFLOAT2(0.0f, 0.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f)   ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f)    ,XMFLOAT2(0.0f, 1.0f) },
-
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f)    ,XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f)   ,XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f)     ,XMFLOAT2(1.0f, 1.0f) },
-	};
-	UINT vertexCount = ARRAYSIZE(vertices);
-	D3D11_BUFFER_DESC bd = {}; 
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(Vertex) * vertexCount;
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA InitData = {};
+	// 设置顶点缓冲区描述
+	D3D11_BUFFER_DESC vbd;
+	ZeroMemory(&vbd, sizeof(vbd));
+	vbd.Usage = D3D11_USAGE_IMMUTABLE;
+	vbd.ByteWidth = sizeof(vertices);
+	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vbd.CPUAccessFlags = 0;
+	// 新建顶点缓冲区
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
 	InitData.pSysMem = vertices;
+	dev->CreateBuffer(&vbd, &InitData, mVertexBuffer.GetAddressOf());
 
-	
-	hr = device->CreateBuffer(&bd, &InitData, &vertexBuffer);
-	if (FAILED(hr))
-	{
-		::MessageBox(NULL, L"Vertex Buffer creation failed!!", L"ERROR", MB_OK);
-		
-	}
-}
+	// ******************
+	// 索引数组
+	WORD indices[] = {
+		// 正面
+		0, 1, 2,
+		2, 3, 0,
+		// 左面
+		4, 5, 1,
+		1, 0, 4,
+		// 顶面
+		1, 5, 6,
+		6, 2, 1,
+		// 背面
+		7, 6, 5,
+		5, 4, 7,
+		// 右面
+		3, 2, 6,
+		6, 7, 3,
+		// 底面
+		4, 0, 3,
+		3, 7, 4
+	};
+	// 设置索引缓冲区描述
+	D3D11_BUFFER_DESC ibd;
+	ZeroMemory(&ibd, sizeof(ibd));
+	ibd.Usage = D3D11_USAGE_IMMUTABLE;
+	ibd.ByteWidth = sizeof(indices);
+	ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	ibd.CPUAccessFlags = 0;
+	// 新建索引缓冲区
+	InitData.pSysMem = indices;
+	dev->CreateBuffer(&ibd, &InitData, mIndexBuffer.GetAddressOf());
+	// 输入装配阶段的索引缓冲区设置
+	//con->IASetIndexBuffer(mIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-void GameObject::buildMaterialandLight()
-{
-	//*************���Ĳ����ò��ʺ͹���***********************
-	// ���ò��ʣ�3�й��յķ������Լ�����ⷴ��ϵ��
-	//��������ǰ��λ��ʾ�������ķ����ʣ�1��ʾ��ȫ���䣬0��ʾ��ȫ����
-	material.ambient = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //ǰ��λ�ֱ��ʾ�������ķ�����
-	material.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); //ͬ��
-	material.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);//ͬ��
-	material.power = 5.0f;
-	// ���ù�Դ
-	Light dirLight;
-	// �����ֻ��Ҫ���ã�����3�ֹ���ǿ��
-	dirLight.direction = XMFLOAT4(-1.0f, 0.0f, 1.0f, 1.0f); //���շ���
-	dirLight.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);   //ǰ��λ�ֱ��ʾ��������ǿ��
-	dirLight.diffuse = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);   //ͬ��
-	dirLight.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);  //ͬ��
-	light = dirLight;
-	//������Ϣ�ĳ�������еĲ�����Ϣ���õ�Effect�����-----------------------------
-	effect->GetVariableByName("MatAmbient")->AsVector()->SetFloatVector((float*)&(material.ambient));
-	effect->GetVariableByName("MatDiffuse")->AsVector()->SetFloatVector((float*)&(material.diffuse));
-	effect->GetVariableByName("MatSpecular")->AsVector()->SetFloatVector((float*)&(material.specular));
-	effect->GetVariableByName("MatPower")->AsScalar()->SetFloat(material.power);
 
-	//���Ƚ��������ͣ�������ǿ�ȣ������ǿ�ȣ������ǿ�����õ�Effect��
-	effect->GetVariableByName("LightAmbient")->AsVector()->SetFloatVector((float*)&(light.ambient));
-	effect->GetVariableByName("LightDiffuse")->AsVector()->SetFloatVector((float*)&(light.diffuse));
-	effect->GetVariableByName("LightSpecular")->AsVector()->SetFloatVector((float*)&(light.specular));
 
-	//�����ֻ��Ҫ������������Լ���
-	effect->GetVariableByName("LightDirection")->AsVector()->SetFloatVector((float*)&(light.direction));
-	//��������Tectnique���õ�Effect
-	technique = effect->GetTechniqueByName("T_DirLight");
-}
+	// ******************
+	// 设置常量缓冲区描述
+	D3D11_BUFFER_DESC cbd;
+	ZeroMemory(&cbd, sizeof(cbd));
+	cbd.Usage = D3D11_USAGE_DEFAULT;
+	cbd.ByteWidth = sizeof(ConstantBuffer);
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.CPUAccessFlags = 0;
+	// 新建常量缓冲区，不使用初始数据
+	dev->CreateBuffer(&cbd, nullptr, mConstantBuffer.GetAddressOf());
 
-void GameObject::buildTexture(const wchar_t* filename)
-{
-	DirectX::CreateDDSTextureFromFile(mapp->device.Get(),
-		filename, nullptr, &texture);
+	// 初始化常量缓冲区的值
+	mCBuffer.world = XMMatrixIdentity();	// 单位矩阵的转置是它本身
+	mCBuffer.view = XMMatrixTranspose(XMMatrixLookAtLH(
+		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
+		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+	));
+	mCBuffer.proj = XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 800.0f / 600.0f, 1.0f, 1000.0f));
 
-	//���������õ���Texture��
-	effect->GetVariableByName("Texture")->AsShaderResource()->SetResource(texture);
-	technique = effect->GetTechniqueByName("T_DirLight");                //Ĭ��Technique
 
+	// ******************
+	// 给渲染管线各个阶段绑定好所需资源
+
+	// 输入装配阶段的顶点缓冲区设置
+	UINT stride = sizeof(VertexForCube);	// 跨越字节数
+	UINT offset = 0;						// 起始偏移量
+
+
+
+	return true;
 }
 
 bool GameObject::Setup()
 {
-	effect->GetVariableByName("World")->AsMatrix()
-		->SetMatrix((float*)&world);
-	effect->GetVariableByName("View")->AsMatrix()
-		->SetMatrix((float*)&view);
-	effect->GetVariableByName("Projection")->AsMatrix()
-		->SetMatrix((float*)&projection);
-	mapp->immediateContext->IASetInputLayout(vertexLayout);
-	mapp->immediateContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-	mapp->immediateContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R16_UINT, 0);
-	mapp->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	technique->GetDesc(&techDesc);
 	return true;
+}
+
+void GameObject::DrawMyself()
+{
+
+
+	//mCBuffer.world = XMMatrixTranspose(XMMatrixRotationX(phi) * XMMatrixRotationY(theta));
+	con->UpdateSubresource(mConstantBuffer.Get(), 0, nullptr, &mCBuffer, 0, 0);
+
+
+	UINT stride = sizeof(VertexForCube);	// 跨越字节数
+	UINT offset = 0;						// 起始偏移量
+	con->IASetIndexBuffer(mIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+	con->IASetVertexBuffers(0, 1, mVertexBuffer.GetAddressOf(), &stride, &offset);
+	// 设置图元类型，设定输入布局
+	con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	con->IASetInputLayout(mVertexLayout.Get());
+	// 将着色器绑定到渲染管线
+	con->VSSetShader(mVertexShader.Get(), nullptr, 0);
+	// 将更新好的常量缓冲区绑定到顶点着色器
+	con->VSSetConstantBuffers(0, 1, mConstantBuffer.GetAddressOf());
+
+	con->PSSetShader(mPixelShader.Get(), nullptr, 0);
+
+
+	// 绘制立方体
+	con->DrawIndexed(36, 0, 0);
+
+}
+
+bool GameObject::LoadMD5Model(std::wstring filename,
+	Model3D& MD5Model,
+	std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
+	std::vector<std::wstring> texFileNameArray)
+{
+	HRESULT hr;
+	std::wifstream fileIn(filename.c_str());		// Open file
+
+	std::wstring checkString;						// Stores the next string from our file
+
+	while (fileIn)								// Loop until the end of the file is reached
+	{
+		fileIn >> checkString;					// Get next string from file
+
+		if (checkString == L"MD5Version")		// Get MD5 version (this function supports version 10)
+		{
+			/*fileIn >> checkString;
+			MessageBox(0, checkString.c_str(),	//display message
+			L"MD5Version", MB_OK);*/
+		}
+		else if (checkString == L"commandline")
+		{
+			std::getline(fileIn, checkString);	// Ignore the rest of this line
+		}
+		else if (checkString == L"numJoints")
+		{
+			fileIn >> MD5Model.numJoints;		// Store number of joints
+		}
+		else if (checkString == L"numMeshes")
+		{
+			fileIn >> MD5Model.numSubsets;		// Store number of meshes or subsets which we will call them
+		}
+		else if (checkString == L"joints")
+		{
+			Joint tempJoint;
+
+			fileIn >> checkString;				// Skip the "{"
+
+			for (int i = 0; i < MD5Model.numJoints; i++)
+			{
+				fileIn >> tempJoint.name;		// Store joints name
+				// Sometimes the names might contain spaces. If that is the case, we need to continue
+				// to read the name until we get to the closing " (quotation marks)
+				if (tempJoint.name[tempJoint.name.size() - 1] != '"')
+				{
+					wchar_t checkChar;
+					bool jointNameFound = false;
+					while (!jointNameFound)
+					{
+						checkChar = fileIn.get();
+
+						if (checkChar == '"')
+							jointNameFound = true;
+
+						tempJoint.name += checkChar;
+					}
+				}
+
+				fileIn >> tempJoint.parentID;	// Store Parent joint's ID
+
+				fileIn >> checkString;			// Skip the "("
+
+				// Store position of this joint (swap y and z axis if model was made in RH Coord Sys)
+				fileIn >> tempJoint.pos.x >> tempJoint.pos.z >> tempJoint.pos.y;
+
+				fileIn >> checkString >> checkString;	// Skip the ")" and "("
+
+				// Store orientation of this joint
+				fileIn >> tempJoint.orientation.x >> tempJoint.orientation.z >> tempJoint.orientation.y;
+
+				// Remove the quotation marks from joints name
+				tempJoint.name.erase(0, 1);
+				tempJoint.name.erase(tempJoint.name.size() - 1, 1);
+
+				// Compute the w axis of the quaternion (The MD5 model uses a 3D vector to describe the
+				// direction the bone is facing. However, we need to turn this into a quaternion, and the way
+				// quaternions work, is the xyz values describe the axis of rotation, while the w is a value
+				// between 0 and 1 which describes the angle of rotation)
+				float t = 1.0f - (tempJoint.orientation.x * tempJoint.orientation.x)
+					- (tempJoint.orientation.y * tempJoint.orientation.y)
+					- (tempJoint.orientation.z * tempJoint.orientation.z);
+				if (t < 0.0f)
+				{
+					tempJoint.orientation.w = 0.0f;
+				}
+				else
+				{
+					tempJoint.orientation.w = -sqrtf(t);
+				}
+
+				std::getline(fileIn, checkString);		// Skip rest of this line
+
+				MD5Model.joints.push_back(tempJoint);	// Store the joint into this models joint vector
+			}
+
+			fileIn >> checkString;					// Skip the "}"
+		}
+		else if (checkString == L"mesh")
+		{
+			ModelSubset subset;
+			int numVerts, numTris, numWeights;
+
+			fileIn >> checkString;					// Skip the "{"
+
+			fileIn >> checkString;
+			while (checkString != L"}")			// Read until '}'
+			{
+				// In this lesson, for the sake of simplicity, we will assume a textures filename is givin here.
+				// Usually though, the name of a material (stored in a material library. Think back to the lesson on
+				// loading .obj files, where the material library was contained in the file .mtl) is givin. Let this
+				// be an exercise to load the material from a material library such as obj's .mtl file, instead of
+				// just the texture like we will do here.
+				if (checkString == L"shader")		// Load the texture or material
+				{
+					std::wstring fileNamePath;
+					fileIn >> fileNamePath;			// Get texture's filename
+
+					// Take spaces into account if filename or material name has a space in it
+					if (fileNamePath[fileNamePath.size() - 1] != '"')
+					{
+						wchar_t checkChar;
+						bool fileNameFound = false;
+						while (!fileNameFound)
+						{
+							checkChar = fileIn.get();
+
+							if (checkChar == '"')
+								fileNameFound = true;
+
+							fileNamePath += checkChar;
+						}
+					}
+
+					// Remove the quotation marks from texture path
+					fileNamePath.erase(0, 1);
+					fileNamePath.erase(fileNamePath.size() - 1, 1);
+
+					//check if this texture has already been loaded
+					bool alreadyLoaded = false;
+					for (int i = 0; i < texFileNameArray.size(); ++i)
+					{
+						if (fileNamePath == texFileNameArray[i])
+						{
+							alreadyLoaded = true;
+							subset.texArrayIndex = i;
+						}
+					}
+
+					//if the texture is not already loaded, load it now
+					if (!alreadyLoaded)
+					{
+						ID3D11ShaderResourceView* tempMeshSRV;
+						//hr = D3DX11CreateShaderResourceViewFromFile( d3d11Device, fileNamePath.c_str(),
+						//	NULL, NULL, &tempMeshSRV, NULL );
+						DirectX::CreateDDSTextureFromFile(dev,
+							fileNamePath.c_str(), nullptr, &tempMeshSRV);
+						//::MessageBox(NULL, fileNamePath.c_str(), L"ERROR", MB_OK);
+						if (SUCCEEDED(hr))
+						{
+							texFileNameArray.push_back(fileNamePath.c_str());
+							subset.texArrayIndex = shaderResourceViewArray.size();
+							shaderResourceViewArray.push_back(tempMeshSRV);
+						}
+						else
+						{
+							MessageBox(0, fileNamePath.c_str(),		//display message
+								L"Could Not Open:", MB_OK);
+							return false;
+						}
+					}
+
+					std::getline(fileIn, checkString);				// Skip rest of this line
+				}
+				else if (checkString == L"numverts")
+				{
+					fileIn >> numVerts;								// Store number of vertices
+
+					std::getline(fileIn, checkString);				// Skip rest of this line
+
+					for (int i = 0; i < numVerts; i++)
+					{
+						Vertex tempVert;
+
+						fileIn >> checkString						// Skip "vert # ("
+							>> checkString
+							>> checkString;
+
+						fileIn >> tempVert.texCoord.x				// Store tex coords
+							>> tempVert.texCoord.y;
+
+						fileIn >> checkString;						// Skip ")"
+
+						fileIn >> tempVert.StartWeight;				// Index of first weight this vert will be weighted to
+
+						fileIn >> tempVert.WeightCount;				// Number of weights for this vertex
+
+						std::getline(fileIn, checkString);			// Skip rest of this line
+
+						subset.vertices.push_back(tempVert);		// Push back this vertex into subsets vertex vector
+					}
+				}
+				else if (checkString == L"numtris")
+				{
+					fileIn >> numTris;
+					subset.numTriangles = numTris;
+
+					std::getline(fileIn, checkString);				// Skip rest of this line
+
+					for (int i = 0; i < numTris; i++)				// Loop through each triangle
+					{
+						DWORD tempIndex;
+						fileIn >> checkString;						// Skip "tri"
+						fileIn >> checkString;						// Skip tri counter
+
+						for (int k = 0; k < 3; k++)					// Store the 3 indices
+						{
+							fileIn >> tempIndex;
+							subset.indices.push_back(tempIndex);
+						}
+
+						std::getline(fileIn, checkString);			// Skip rest of this line
+					}
+				}
+				else if (checkString == L"numweights")
+				{
+					fileIn >> numWeights;
+
+					std::getline(fileIn, checkString);				// Skip rest of this line
+
+					for (int i = 0; i < numWeights; i++)
+					{
+						Weight tempWeight;
+						fileIn >> checkString >> checkString;		// Skip "weight #"
+
+						fileIn >> tempWeight.jointID;				// Store weight's joint ID
+
+						fileIn >> tempWeight.bias;					// Store weight's influence over a vertex
+
+						fileIn >> checkString;						// Skip "("
+
+						fileIn >> tempWeight.pos.x					// Store weight's pos in joint's local space
+							>> tempWeight.pos.z
+							>> tempWeight.pos.y;
+
+						std::getline(fileIn, checkString);			// Skip rest of this line
+
+						subset.weights.push_back(tempWeight);		// Push back tempWeight into subsets Weight array
+					}
+
+				}
+				else
+					std::getline(fileIn, checkString);				// Skip anything else
+
+				fileIn >> checkString;								// Skip "}"
+			}
+
+			//*** find each vertex's position using the joints and weights ***//
+			for (int i = 0; i < subset.vertices.size(); ++i)
+			{
+				Vertex tempVert = subset.vertices[i];
+				tempVert.pos = XMFLOAT3(0, 0, 0);	// Make sure the vertex's pos is cleared first
+
+				// Sum up the joints and weights information to get vertex's position
+				for (int j = 0; j < tempVert.WeightCount; ++j)
+				{
+					Weight tempWeight = subset.weights[tempVert.StartWeight + j];
+					Joint tempJoint = MD5Model.joints[tempWeight.jointID];
+
+					// Convert joint orientation and weight pos to vectors for easier computation
+					// When converting a 3d vector to a quaternion, you should put 0 for "w", and
+					// When converting a quaternion to a 3d vector, you can just ignore the "w"
+					XMVECTOR tempJointOrientation = XMVectorSet(tempJoint.orientation.x, tempJoint.orientation.y, tempJoint.orientation.z, tempJoint.orientation.w);
+					XMVECTOR tempWeightPos = XMVectorSet(tempWeight.pos.x, tempWeight.pos.y, tempWeight.pos.z, 0.0f);
+
+					// We will need to use the conjugate of the joint orientation quaternion
+					// To get the conjugate of a quaternion, all you have to do is inverse the x, y, and z
+					XMVECTOR tempJointOrientationConjugate = XMVectorSet(-tempJoint.orientation.x, -tempJoint.orientation.y, -tempJoint.orientation.z, tempJoint.orientation.w);
+
+					// Calculate vertex position (in joint space, eg. rotate the point around (0,0,0)) for this weight using the joint orientation quaternion and its conjugate
+					// We can rotate a point using a quaternion with the equation "rotatedPoint = quaternion * point * quaternionConjugate"
+					XMFLOAT3 rotatedPoint;
+					XMStoreFloat3(&rotatedPoint, XMQuaternionMultiply(XMQuaternionMultiply(tempJointOrientation, tempWeightPos), tempJointOrientationConjugate));
+
+					// Now move the verices position from joint space (0,0,0) to the joints position in world space, taking the weights bias into account
+					// The weight bias is used because multiple weights might have an effect on the vertices final position. Each weight is attached to one joint.
+					tempVert.pos.x += (tempJoint.pos.x + rotatedPoint.x) * tempWeight.bias;
+					tempVert.pos.y += (tempJoint.pos.y + rotatedPoint.y) * tempWeight.bias;
+					tempVert.pos.z += (tempJoint.pos.z + rotatedPoint.z) * tempWeight.bias;
+
+					// Basically what has happened above, is we have taken the weights position relative to the joints position
+					// we then rotate the weights position (so that the weight is actually being rotated around (0, 0, 0) in world space) using
+					// the quaternion describing the joints rotation. We have stored this rotated point in rotatedPoint, which we then add to
+					// the joints position (because we rotated the weight's position around (0,0,0) in world space, and now need to translate it
+					// so that it appears to have been rotated around the joints position). Finally we multiply the answer with the weights bias,
+					// or how much control the weight has over the final vertices position. All weight's bias effecting a single vertex's position
+					// must add up to 1.
+				}
+
+				subset.positions.push_back(tempVert.pos);			// Store the vertices position in the position vector instead of straight into the vertex vector
+				// since we can use the positions vector for certain things like collision detection or picking
+				// without having to work with the entire vertex structure.
+			}
+
+			// Put the positions into the vertices for this subset
+			for (int i = 0; i < subset.vertices.size(); i++)
+			{
+				subset.vertices[i].pos = subset.positions[i];
+			}
+
+			//*** Calculate vertex normals using normal averaging ***///
+			std::vector<XMFLOAT3> tempNormal;
+
+			//normalized and unnormalized normals
+			XMFLOAT3 unnormalized = XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+			//Used to get vectors (sides) from the position of the verts
+			float vecX, vecY, vecZ;
+
+			//Two edges of our triangle
+			XMVECTOR edge1 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+			XMVECTOR edge2 = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+
+			//Compute face normals
+			for (int i = 0; i < subset.numTriangles; ++i)
+			{
+				//Get the vector describing one edge of our triangle (edge 0,2)
+				vecX = subset.vertices[subset.indices[(i * 3)]].pos.x - subset.vertices[subset.indices[(i * 3) + 2]].pos.x;
+				vecY = subset.vertices[subset.indices[(i * 3)]].pos.y - subset.vertices[subset.indices[(i * 3) + 2]].pos.y;
+				vecZ = subset.vertices[subset.indices[(i * 3)]].pos.z - subset.vertices[subset.indices[(i * 3) + 2]].pos.z;
+				edge1 = XMVectorSet(vecX, vecY, vecZ, 0.0f);	//Create our first edge
+
+				//Get the vector describing another edge of our triangle (edge 2,1)
+				vecX = subset.vertices[subset.indices[(i * 3) + 2]].pos.x - subset.vertices[subset.indices[(i * 3) + 1]].pos.x;
+				vecY = subset.vertices[subset.indices[(i * 3) + 2]].pos.y - subset.vertices[subset.indices[(i * 3) + 1]].pos.y;
+				vecZ = subset.vertices[subset.indices[(i * 3) + 2]].pos.z - subset.vertices[subset.indices[(i * 3) + 1]].pos.z;
+				edge2 = XMVectorSet(vecX, vecY, vecZ, 0.0f);	//Create our second edge
+
+				//Cross multiply the two edge vectors to get the un-normalized face normal
+				XMStoreFloat3(&unnormalized, XMVector3Cross(edge1, edge2));
+
+				tempNormal.push_back(unnormalized);
+			}
+
+			//Compute vertex normals (normal Averaging)
+			XMVECTOR normalSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+			int facesUsing = 0;
+			float tX, tY, tZ;	//temp axis variables
+
+			//Go through each vertex
+			for (int i = 0; i < subset.vertices.size(); ++i)
+			{
+				//Check which triangles use this vertex
+				for (int j = 0; j < subset.numTriangles; ++j)
+				{
+					if (subset.indices[j * 3] == i ||
+						subset.indices[(j * 3) + 1] == i ||
+						subset.indices[(j * 3) + 2] == i)
+					{
+						tX = XMVectorGetX(normalSum) + tempNormal[j].x;
+						tY = XMVectorGetY(normalSum) + tempNormal[j].y;
+						tZ = XMVectorGetZ(normalSum) + tempNormal[j].z;
+
+						normalSum = XMVectorSet(tX, tY, tZ, 0.0f);	//If a face is using the vertex, add the unormalized face normal to the normalSum
+
+						facesUsing++;
+					}
+				}
+
+				//Get the actual normal by dividing the normalSum by the number of faces sharing the vertex
+				normalSum = normalSum / facesUsing;
+
+				//Normalize the normalSum vector
+				normalSum = XMVector3Normalize(normalSum);
+
+				//Store the normal and tangent in our current vertex
+				subset.vertices[i].normal.x = -XMVectorGetX(normalSum);
+				subset.vertices[i].normal.y = -XMVectorGetY(normalSum);
+				subset.vertices[i].normal.z = -XMVectorGetZ(normalSum);
+
+				///////////////**************new**************////////////////////
+				// Create the joint space normal for easy normal calculations in animation
+				Vertex tempVert = subset.vertices[i];						// Get the current vertex
+				subset.jointSpaceNormals.push_back(XMFLOAT3(0, 0, 0));		// Push back a blank normal
+				XMVECTOR normal = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);		// Clear normal
+
+				for (int k = 0; k < tempVert.WeightCount; k++)				// Loop through each of the vertices weights
+				{
+					Joint tempJoint = MD5Model.joints[subset.weights[tempVert.StartWeight + k].jointID];	// Get the joints orientation
+					XMVECTOR jointOrientation = XMVectorSet(tempJoint.orientation.x, tempJoint.orientation.y, tempJoint.orientation.z, tempJoint.orientation.w);
+
+					// Calculate normal based off joints orientation (turn into joint space)
+					normal = XMQuaternionMultiply(XMQuaternionMultiply(XMQuaternionInverse(jointOrientation), normalSum), jointOrientation);
+
+					XMStoreFloat3(&subset.weights[tempVert.StartWeight + k].normal, XMVector3Normalize(normal));			// Store the normalized quaternion into our weights normal
+				}
+				///////////////**************new**************////////////////////
+				//Clear normalSum, facesUsing for next vertex
+				normalSum = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+				facesUsing = 0;
+			}
+
+			// Create index buffer
+			D3D11_BUFFER_DESC indexBufferDesc;
+			ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
+
+			indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			indexBufferDesc.ByteWidth = sizeof(DWORD) * subset.numTriangles * 3;
+			indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+			indexBufferDesc.CPUAccessFlags = 0;
+			indexBufferDesc.MiscFlags = 0;
+
+			D3D11_SUBRESOURCE_DATA iinitData;
+			iinitData.pSysMem = &subset.indices[0];
+			dev->CreateBuffer(&indexBufferDesc, &iinitData, &subset.indexBuff);
+
+			//Create Vertex Buffer
+			D3D11_BUFFER_DESC vertexBufferDesc;
+			ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
+
+			vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;							// We will be updating this buffer, so we must set as dynamic
+			vertexBufferDesc.ByteWidth = sizeof(Vertex) * subset.vertices.size();
+			vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;				// Give CPU power to write to buffer
+			vertexBufferDesc.MiscFlags = 0;
+
+			D3D11_SUBRESOURCE_DATA vertexBufferData;
+			ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
+			vertexBufferData.pSysMem = &subset.vertices[0];
+			hr = dev->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &subset.vertBuff);
+
+			// Push back the temp subset into the models subset vector
+			MD5Model.subsets.push_back(subset);
+		}
+	}
+
+
+	return true;
+}
+
+bool GameObject::InitMd5()
+{
+	//Compile Shaders from shader file
+	ID3DBlob* compilationMsgs = nullptr;
+	HRESULT hr = S_OK;
+
+	D3DCompileFromFile(L"Effects.fx", 0, 0, "VS", "vs_5_0", 0, 0, &VS_Buffer, &compilationMsgs);
+	D3DCompileFromFile(L"Effects.fx", 0, 0, "PS", "ps_5_0", 0, 0, &PS_Buffer, &compilationMsgs);
+
+	//Create the Shader Objects
+	hr = dev->CreateVertexShader(VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), NULL, &VS);
+	hr = dev->CreatePixelShader(PS_Buffer->GetBufferPointer(), PS_Buffer->GetBufferSize(), NULL, &PS);
+
+	//Set Vertex and Pixel Shaders
+	con->VSSetShader(VS, 0, 0);
+	con->PSSetShader(PS, 0, 0);
+
+	light.pos = XMFLOAT3(0.0f, 7.0f, 0.0f);
+	light.dir = XMFLOAT3(-0.5f, 0.75f, -0.5f);
+	light.range = 1000.0f;
+	light.cone = 12.0f;
+	light.att = XMFLOAT3(0.4f, 0.02f, 0.000f);
+	light.ambient = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
+	light.diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",	 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+	UINT numElements = ARRAYSIZE(layout);
+	//Create the Input Layout
+	hr = dev->CreateInputLayout(layout, numElements, VS_Buffer->GetBufferPointer(),
+		VS_Buffer->GetBufferSize(), &vertLayout);
+
+	//Set the Input Layout
+	con->IASetInputLayout(vertLayout);
+
+	//Set Primitive Topology
+	con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//Create the buffer to send to the cbuffer in effect file
+	D3D11_BUFFER_DESC cbbd;
+	ZeroMemory(&cbbd, sizeof(D3D11_BUFFER_DESC));
+
+	cbbd.Usage = D3D11_USAGE_DEFAULT;
+	cbbd.ByteWidth = sizeof(cbPerObject);
+	cbbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbbd.CPUAccessFlags = 0;
+	cbbd.MiscFlags = 0;
+
+	hr = dev->CreateBuffer(&cbbd, NULL, &cbPerObjectBuffer);
+
+	//Create the buffer to send to the cbuffer per frame in effect file
+	ZeroMemory(&cbbd, sizeof(D3D11_BUFFER_DESC));
+
+	cbbd.Usage = D3D11_USAGE_DEFAULT;
+	cbbd.ByteWidth = sizeof(cbPerFrame);
+	cbbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbbd.CPUAccessFlags = 0;
+	cbbd.MiscFlags = 0;
+
+	hr = dev->CreateBuffer(&cbbd, NULL, &cbPerFrameBuffer);
+
+	//Camera information
+	camPosition = XMVectorSet(0.0f, 5.0f, -8.0f, 0.0f);
+	camTarget = XMVectorSet(0.0f, 0.5f, 0.0f, 0.0f);
+	camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+	//Set the View matrix
+	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
+
+	//Set the Projection matrix
+	camProjection = XMMatrixPerspectiveFovLH(0.4f*3.14f, 800.0f / 600.0f, 1.0f, 1000.0f);
+	return true;
+}
+
+
+void GameObject::UpdateMd5()
+{
+	//the loaded models world space
+	meshWorld = XMMatrixIdentity();
+
+	Rotation = XMMatrixRotationY(3.14f);
+	Scale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+	Translation = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+
+	meshWorld = Rotation * Scale * Translation;
+
+	Scale = XMMatrixScaling(0.04f, 0.04f, 0.04f);			// The model is a bit too large for our scene, so make it smaller
+	Translation = XMMatrixTranslation(0.0f, 3.0f, 0.0f);
+	smilesWorld = Scale * Translation;
+}
+
+void GameObject::DrawMd5()
+{
+	constbuffPerFrame.light = light;
+	con->UpdateSubresource(cbPerFrameBuffer, 0, NULL, &constbuffPerFrame, 0, 0);
+	con->PSSetConstantBuffers(0, 1, &cbPerFrameBuffer);
+
+	
+
+	//Set Vertex and Pixel Shaders
+	con->VSSetShader(VS, 0, 0);
+	con->PSSetShader(PS, 0, 0);
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	///***Draw MD5 Model***///
+	for (int i = 0; i < NewMD5Model.numSubsets; i++)
+	{
+		//Set the grounds index buffer
+		con->IASetIndexBuffer(NewMD5Model.subsets[i].indexBuff, DXGI_FORMAT_R32_UINT, 0);
+		//Set the grounds vertex buffer
+		con->IASetVertexBuffers(0, 1, &NewMD5Model.subsets[i].vertBuff, &stride, &offset);
+
+		//Set the WVP matrix and send it to the constant buffer in effect file
+		WVP = smilesWorld * camView * camProjection;
+		cbPerObj.WVP = XMMatrixTranspose(WVP);
+		cbPerObj.World = XMMatrixTranspose(smilesWorld);
+		cbPerObj.hasTexture = true;		// We'll assume all md5 subsets have textures
+		cbPerObj.hasNormMap = false;	// We'll also assume md5 models have no normal map (easy to change later though)
+		con->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+		con->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
+		con->PSSetConstantBuffers(1, 1, &cbPerObjectBuffer);
+		con->PSSetShaderResources(0, 1, &meshSRV[NewMD5Model.subsets[i].texArrayIndex]);
+
+		con->DrawIndexed(NewMD5Model.subsets[i].indices.size(), 0, 0);
+	}
+
+
+
+
+	//Present the backbuffer to the screen
+	mapp->swapChain->Present(0, 0);
 }

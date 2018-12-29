@@ -18,6 +18,7 @@ Camera::Camera(std::vector<GameObject*> List)
 		mList[i]->SetViewMatrix(view);
 		mList[i]->SetProjMatrix(projection);
 	}
+
 }
 
 
@@ -27,9 +28,9 @@ Camera::~Camera()
 
 void Camera::SetCamPosition(float deltaX, float deltaZ)
 {
-	XMVECTOR Eye = XMVectorSet(deltaX, 5.0f, deltaZ, 0.0f);
+	XMVECTOR Eye = XMVectorSet(3.0f, 5.0f, -5.0f, 0.0f);
 
-	XMVECTOR At = XMVectorSet(deltaX-3.0f, 0.0f, deltaZ+5.0f, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	XMMATRIX view = XMMatrixLookAtLH(Eye, At, Up);
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 800.0f / 600.0f, 0.01f, 100.0f);

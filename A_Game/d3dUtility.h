@@ -15,8 +15,9 @@ using namespace DirectX;
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
-//Effect11 头文件
-#include <d3dx11effect.h>
+//文件流
+#include <fstream>
+#include <istream>
 
 
 //DirectX11相关库
@@ -28,6 +29,8 @@ using namespace DirectX;
 class D3DUtility
 {
 public:
+	ID3D11Buffer* cbPerObjectBuffer;
+
 	D3DUtility(HINSTANCE hInstance);
 	HINSTANCE mhAppInst = nullptr;
 	HWND  mhMainWnd = nullptr;

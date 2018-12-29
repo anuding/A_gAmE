@@ -27,14 +27,9 @@
     <ClCompile Include="MainScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-
     <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Light.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dUtility.h">
@@ -43,30 +38,28 @@
     <ClInclude Include="GameObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-
     <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="debugprint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="Shader\LightShader.fx">
       <Filter>Shader</Filter>
     </None>
-
     <None Include="Shader\SimpleShader.fx">
       <Filter>Shader</Filter>
     </None>
-    <None Include="Shader\TextureAndLightShader.fx">
+    <None Include="Shader\Shader.fx">
       <Filter>Shader</Filter>
     </None>
-
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Effects.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

@@ -8,12 +8,6 @@ struct  VertexForCube
 	XMFLOAT4 Color;
 };
 
-struct ConstantBuffer
-{
-	XMMATRIX world;
-	XMMATRIX view;
-	XMMATRIX proj;
-};
 
 const D3D11_INPUT_ELEMENT_DESC inputLayout[] = {
 	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -150,7 +144,6 @@ struct cbPerObject
 {
 	XMMATRIX  WVP;
 	XMMATRIX World;
-
 	//These will be used for the pixel shader
 	XMFLOAT4 difColor;
 	BOOL hasTexture;
@@ -164,16 +157,23 @@ struct cbPerFrame
 	Light  light;
 };
 
-
+enum TYPE
+{
+	CUBE = 1,
+	MD5=2,
+	OBJ=3
+};
 
 class GameObject
 {
 public:
 	std::vector<GameObject*>* communicateList;
 	char tag[20]="";
+	TYPE mType=CUBE;
 
 	void BOSS();
 	GameObject(D3DUtility* app);
+	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename);
 	~GameObject();
 
 	void SetWorldMatrix(XMMATRIX mworld);
@@ -195,13 +195,11 @@ public:
 	//资源
 	Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer;			// 顶点缓冲区
 	Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer;			// 索引缓冲区
-	Microsoft::WRL::ComPtr<ID3D11Buffer> mConstantBuffer;		// 常量缓冲区
 	
-	ID3D11Buffer* cbPerObjectBuffer;
-	ID3D11Buffer* cbPerFrameBuffer;//MD5专用
+	ID3D11Buffer* cbPerObjectBuffer;//常量缓冲区 for Matrix
+	ID3D11Buffer* cbPerFrameBuffer;//MD5专用个屁
 
-	ConstantBuffer mCBuffer;	// 用于修改GPU常量缓冲区的变量
-
+	cbPerObject cbPerObj;//Matrix staff
 	D3DUtility* mapp;
 
 	XMVECTOR GetPos();
@@ -212,46 +210,45 @@ public:
 
 private:
 
-	XMVECTOR camPosition;
-	XMVECTOR camTarget;
-	XMVECTOR camUp;
-	XMMATRIX camView;
-	XMMATRIX camProjection;
-
+	XMMATRIX camView = XMMatrixLookAtLH(
+		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
+		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
+	);
+	XMMATRIX camProjection=XMMatrixPerspectiveFovLH(XM_PIDIV2, 800.0f / 600.0f, 1.0f, 1000.0f);
+	XMMATRIX Scale;
+	XMMATRIX World=XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+	XMMATRIX smilesWorld;
 
 	ID3D11Device* dev;
 	ID3D11DeviceContext* con;
 	Model3D NewMD5Model;
 	Light light;
 
-	cbPerObject cbPerObj;
 	cbPerFrame constbuffPerFrame;
 
 	std::vector<ID3D11ShaderResourceView*> meshSRV;
 	std::vector<std::wstring> textureNameArray;
 
 	XMVECTOR pos= XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-	bool InitEffect();	
-	bool InitResource();
+	bool InitCube();
 	bool InitMd5();
 
 
-	XMMATRIX meshWorld;
-	XMMATRIX Rotation;
-	XMMATRIX Scale;
-	XMMATRIX Translation;
-	XMMATRIX smilesWorld;
-	XMMATRIX WVP;
+
+	
+	void UpdateMatrix();
+	void DrawMd5();
+	void DrawCube();
 public:
 	bool Setup();
-	void DrawMyself();
 	//LoadMD5Model() function prototype
 	bool LoadMD5Model(std::wstring filename,
 		Model3D& MD5Model,
 		std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
 		std::vector<std::wstring> texFileNameArray);
-	void UpdateMd5();
-	void DrawMd5();
+
+	void Draw();
 };
 
 //this is another test

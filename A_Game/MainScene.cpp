@@ -3,7 +3,7 @@
 #include "Camera.h"
 #include "debugprint.h"
 #include <iostream>
-//Camera* cam;
+Camera* cam;
 std::vector<GameObject*> GameObjectList;
 
 
@@ -56,7 +56,47 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 //
 ////**************以下为框架函数******************
+void Update()
+{
+	//计算player到Boss的方向
+	GameObject* bo = GameObjectList[1];
+	GameObject* pl = GameObjectList[0];
+	XMFLOAT4 originPos;//Boss原本的位置
+	XMStoreFloat4(&originPos, pl->GetPos());
+	XMVECTOR dir = bo->GetPos() - pl->GetPos();
 
+	XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
+	XMVECTOR front = XMVector3Normalize(dir);
+	XMVECTOR back = -front;
+	XMVECTOR right = XMVector3Cross(dir, tmp);
+	XMVECTOR left = -right;
+	//float playerSpeed = 1.0f;
+
+	XMVECTOR moveVector = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
+	float camSpeed = 1.0f / 360;
+	if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //响应键盘左方向键
+		moveVector += left;
+	if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //响应键盘右方向键
+		moveVector += right;
+	if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //响应键盘上方向键
+		moveVector += front;
+	if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //响应键盘下方向键
+		moveVector += back;
+	XMMATRIX world;
+	XMFLOAT4 deltainDir;
+	XMStoreFloat4(&deltainDir, moveVector); //从Boss指向player的向量  
+	float destX; float destY; float destZ;//Boss应该移动到的位置
+	destX = originPos.x + deltainDir.x*0.0007f;
+	destY = originPos.y + deltainDir.y*0.0007f;
+	destZ = originPos.z + deltainDir.z*0.0007f;
+
+	world = XMMatrixTranslation(destX, destY, destZ);
+
+	GameObjectList[0]->SetWorldMatrix(world);
+
+	cam->Follow();
+}
 
 bool Display(D3DUtility* mApp)
 {
@@ -72,16 +112,11 @@ bool Display(D3DUtility* mApp)
 		con->ClearRenderTargetView(mApp->renderTargetView.Get(), reinterpret_cast<const float*>(&black));
 		con->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		
-		/*static float phi = 0.0f, theta = 0.0f;
-		phi += 0.00003f, theta += 0.00005f;
-		GameObjectList[1]->mCBuffer.world = XMMatrixTranspose(XMMatrixTranslation(phi, 0.0f, 0.0f)*XMMatrixRotationX(0.4) * XMMatrixRotationY(0.4f));
-		*/
+
 		for (int i = 0; i < count; i++)
 		{
 
-			//GameObjectList[i]->DrawMyself();
-			GameObjectList[i]->UpdateMd5();
-			GameObjectList[i]->DrawMd5();
+			GameObjectList[i]->Draw();
 			
 		}
 		mApp->swapChain->Present(0, 0);
@@ -109,7 +144,7 @@ int MainScene::Running()
 		else
 		{
 			//在这里进行动画计算和渲染
-			//Update();//动画计算
+			Update();//动画计算
 			Display(mApp);//渲染
 			
 		}
@@ -131,15 +166,20 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	MainScene mainscene(hInstance);
 	mainscene.InitApp();
 
-	GameObject* player = new GameObject(mainscene.mApp);
-	//player->mCBuffer.world= XMMatrixTranspose(XMMatrixRotationX(0.2f) * XMMatrixRotationY(0.2f));
+	GameObject* boss = new GameObject(mainscene.mApp,MD5, L"hellknight.md5mesh");
 
-	//GameObject* boss = new GameObject(mainscene.mApp);
-	//boss->mCBuffer.world = XMMatrixTranspose(XMMatrixTranslation(3.0f, 0.0f, 0.0f)*XMMatrixRotationX(0.4) * XMMatrixRotationY(0.4f));
+	GameObject* player = new GameObject(mainscene.mApp, MD5, L"boy.md5mesh");
+	//player->mCBuffer.world= XMMatrixTranspose(XMMatrixRotationX(0.5f) * XMMatrixRotationY(0.4f));
+	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
+
 
 
 	GameObjectList.push_back(player);
-	//GameObjectList.push_back(boss);
+	GameObjectList.push_back(boss);
+	
+	
+	boss->communicateList = &GameObjectList;
+	cam = new Camera(GameObjectList);
 	mainscene.Running();
 
 

@@ -27,7 +27,7 @@ cbuffer cbPerObject
 Texture2D ObjTexture;
 Texture2D ObjNormMap;
 SamplerState ObjSamplerState;
-TextureCube SkyMap;
+
 
 struct VS_OUTPUT
 {
@@ -38,11 +38,6 @@ struct VS_OUTPUT
 	float3 tangent : TANGENT;
 };
 
-struct SKYMAP_VS_OUTPUT	//output structure for skymap vertex shader
-{
-	float4 Pos : SV_POSITION;
-	float3 texCoord : TEXCOORD;
-};
 
 VS_OUTPUT VS(float4 inPos : POSITION, float2 inTexCoord : TEXCOORD, float3 normal : NORMAL, float3 tangent : TANGENT)
 {
@@ -56,19 +51,6 @@ VS_OUTPUT VS(float4 inPos : POSITION, float2 inTexCoord : TEXCOORD, float3 norma
 	output.tangent = mul(tangent, World);
 
 	output.TexCoord = inTexCoord;
-
-	return output;
-}
-
-
-SKYMAP_VS_OUTPUT SKYMAP_VS(float3 inPos : POSITION, float2 inTexCoord : TEXCOORD, float3 normal : NORMAL, float3 tangent : TANGENT)
-{
-	SKYMAP_VS_OUTPUT output = (SKYMAP_VS_OUTPUT)0;
-
-	//Set Pos to xyww instead of xyzw, so that z will always be 1 (furthest from camera)
-	output.Pos = mul(float4(inPos, 1.0f), WVP).xyww;
-
-	output.texCoord = inPos;
 
 	return output;
 }
@@ -112,16 +94,4 @@ finalColor = diffuse * light.ambient;
 finalColor += saturate(dot(light.dir, input.normal) * light.diffuse * diffuse);
 
 return float4(finalColor, diffuse.a);
-}
-
-float4 SKYMAP_PS(SKYMAP_VS_OUTPUT input) : SV_Target
-{
-	return SkyMap.Sample(ObjSamplerState, input.texCoord);
-}
-
-float4 D2D_PS(VS_OUTPUT input) : SV_TARGET
-{
-	float4 diffuse = ObjTexture.Sample(ObjSamplerState, input.TexCoord);
-
-	return diffuse;
 }

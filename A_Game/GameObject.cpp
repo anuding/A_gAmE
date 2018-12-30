@@ -4,15 +4,31 @@
 
 GameObject::GameObject(D3DUtility* app)
 {
+	//CUBE 构造函数
 	mapp = app;
 	dev = app->device.Get();
 	con = app->immediateContext.Get();
+	mType = CUBE;
 
-	//InitEffect();
-	//InitResource();
-	LoadMD5Model(L"hellknight.md5mesh", NewMD5Model, meshSRV, textureNameArray);
-	InitMd5();
+	InitCube();
+}
 
+GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename)
+{
+	//CUBE 构造函数
+	mapp = app;
+	dev = app->device.Get();
+	con = app->immediateContext.Get();
+	mType = modelType;
+	if (modelType == MD5)
+	{
+		LoadMD5Model(filename, NewMD5Model, meshSRV, textureNameArray);
+		InitMd5();
+	}
+	if (modelType == OBJ)
+	{
+
+	}
 }
 
 GameObject::~GameObject()
@@ -22,25 +38,19 @@ GameObject::~GameObject()
 
 void GameObject::SetWorldMatrix(XMMATRIX mworld)
 {
-	/*world = mworld;
-	cbPerObj.World = mworld;
+	World = mworld;
 	XMVECTOR tmp = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	pos = XMVector4Transform(tmp, mworld);
-	Setup();*/
 }
 
 void GameObject::SetViewMatrix(XMMATRIX mview)
 {
-	/*view = mview;
-	cbPerObj.View = mview;
-	Setup();*/
+	camView = mview;
 }
 
 void GameObject::SetProjMatrix(XMMATRIX mproj)
 {
-	//projection = mproj;
-	///*cbPerObj.Proj = mproj;*/
-	//Setup();
+	camProjection = mproj;
 }
 
 XMVECTOR GameObject::GetPos()
@@ -48,7 +58,7 @@ XMVECTOR GameObject::GetPos()
 	return pos;
 }
 
-bool GameObject::InitEffect()
+bool GameObject::InitCube()
 {
 	ID3DBlob* compilationMsgs = nullptr;
 	HRESULT hr = S_OK;
@@ -63,13 +73,6 @@ bool GameObject::InitEffect()
 	dev->CreateInputLayout(inputLayout, ARRAYSIZE(inputLayout),
 		VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), mVertexLayout.GetAddressOf());
 
-
-
-	return true;
-}
-
-bool GameObject::InitResource()
-{
 	VertexForCube vertices[] =
 	{
 		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
@@ -126,40 +129,17 @@ bool GameObject::InitResource()
 	// 新建索引缓冲区
 	InitData.pSysMem = indices;
 	dev->CreateBuffer(&ibd, &InitData, mIndexBuffer.GetAddressOf());
-	// 输入装配阶段的索引缓冲区设置
-	//con->IASetIndexBuffer(mIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-
-
+	
 	// ******************
 	// 设置常量缓冲区描述
 	D3D11_BUFFER_DESC cbd;
 	ZeroMemory(&cbd, sizeof(cbd));
 	cbd.Usage = D3D11_USAGE_DEFAULT;
-	cbd.ByteWidth = sizeof(ConstantBuffer);
+	cbd.ByteWidth = sizeof(cbPerObject);
 	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	cbd.CPUAccessFlags = 0;
 	// 新建常量缓冲区，不使用初始数据
-	dev->CreateBuffer(&cbd, nullptr, mConstantBuffer.GetAddressOf());
-
-	// 初始化常量缓冲区的值
-	mCBuffer.world = XMMatrixIdentity();	// 单位矩阵的转置是它本身
-	mCBuffer.view = XMMatrixTranspose(XMMatrixLookAtLH(
-		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
-		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
-		XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)
-	));
-	mCBuffer.proj = XMMatrixTranspose(XMMatrixPerspectiveFovLH(XM_PIDIV2, 800.0f / 600.0f, 1.0f, 1000.0f));
-
-
-	// ******************
-	// 给渲染管线各个阶段绑定好所需资源
-
-	// 输入装配阶段的顶点缓冲区设置
-	UINT stride = sizeof(VertexForCube);	// 跨越字节数
-	UINT offset = 0;						// 起始偏移量
-
-
+	dev->CreateBuffer(&cbd, nullptr, &cbPerObjectBuffer);
 
 	return true;
 }
@@ -169,16 +149,13 @@ bool GameObject::Setup()
 	return true;
 }
 
-void GameObject::DrawMyself()
+void GameObject::DrawCube()
 {
-
-
-	//mCBuffer.world = XMMatrixTranspose(XMMatrixRotationX(phi) * XMMatrixRotationY(theta));
-	con->UpdateSubresource(mConstantBuffer.Get(), 0, nullptr, &mCBuffer, 0, 0);
-
-
+	cbPerObj.WVP = XMMatrixTranspose(smilesWorld*camView*camProjection);
+	con->UpdateSubresource(cbPerObjectBuffer, 0, nullptr, &cbPerObj, 0, 0);
 	UINT stride = sizeof(VertexForCube);	// 跨越字节数
 	UINT offset = 0;						// 起始偏移量
+	// 输入装配阶段的索引缓冲区设置
 	con->IASetIndexBuffer(mIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 	con->IASetVertexBuffers(0, 1, mVertexBuffer.GetAddressOf(), &stride, &offset);
 	// 设置图元类型，设定输入布局
@@ -187,14 +164,11 @@ void GameObject::DrawMyself()
 	// 将着色器绑定到渲染管线
 	con->VSSetShader(mVertexShader.Get(), nullptr, 0);
 	// 将更新好的常量缓冲区绑定到顶点着色器
-	con->VSSetConstantBuffers(0, 1, mConstantBuffer.GetAddressOf());
-
+	con->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
 	con->PSSetShader(mPixelShader.Get(), nullptr, 0);
-
 
 	// 绘制立方体
 	con->DrawIndexed(36, 0, 0);
-
 }
 
 bool GameObject::LoadMD5Model(std::wstring filename,
@@ -202,7 +176,7 @@ bool GameObject::LoadMD5Model(std::wstring filename,
 	std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
 	std::vector<std::wstring> texFileNameArray)
 {
-	HRESULT hr;
+	HRESULT hr = S_OK;
 	std::wifstream fileIn(filename.c_str());		// Open file
 
 	std::wstring checkString;						// Stores the next string from our file
@@ -351,7 +325,7 @@ bool GameObject::LoadMD5Model(std::wstring filename,
 						ID3D11ShaderResourceView* tempMeshSRV;
 						//hr = D3DX11CreateShaderResourceViewFromFile( d3d11Device, fileNamePath.c_str(),
 						//	NULL, NULL, &tempMeshSRV, NULL );
-						DirectX::CreateDDSTextureFromFile(dev,
+						hr = DirectX::CreateDDSTextureFromFile(dev,
 							fileNamePath.c_str(), nullptr, &tempMeshSRV);
 						//::MessageBox(NULL, fileNamePath.c_str(), L"ERROR", MB_OK);
 						if (SUCCEEDED(hr))
@@ -636,6 +610,7 @@ bool GameObject::LoadMD5Model(std::wstring filename,
 	return true;
 }
 
+
 bool GameObject::InitMd5()
 {
 	//Compile Shaders from shader file
@@ -649,9 +624,6 @@ bool GameObject::InitMd5()
 	hr = dev->CreateVertexShader(VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), NULL, &VS);
 	hr = dev->CreatePixelShader(PS_Buffer->GetBufferPointer(), PS_Buffer->GetBufferSize(), NULL, &PS);
 
-	//Set Vertex and Pixel Shaders
-	con->VSSetShader(VS, 0, 0);
-	con->PSSetShader(PS, 0, 0);
 
 	light.pos = XMFLOAT3(0.0f, 7.0f, 0.0f);
 	light.dir = XMFLOAT3(-0.5f, 0.75f, -0.5f);
@@ -673,11 +645,7 @@ bool GameObject::InitMd5()
 	hr = dev->CreateInputLayout(layout, numElements, VS_Buffer->GetBufferPointer(),
 		VS_Buffer->GetBufferSize(), &vertLayout);
 
-	//Set the Input Layout
-	con->IASetInputLayout(vertLayout);
 
-	//Set Primitive Topology
-	con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	//Create the buffer to send to the cbuffer in effect file
 	D3D11_BUFFER_DESC cbbd;
 	ZeroMemory(&cbbd, sizeof(D3D11_BUFFER_DESC));
@@ -701,43 +669,44 @@ bool GameObject::InitMd5()
 
 	hr = dev->CreateBuffer(&cbbd, NULL, &cbPerFrameBuffer);
 
-	//Camera information
-	camPosition = XMVectorSet(0.0f, 5.0f, -8.0f, 0.0f);
-	camTarget = XMVectorSet(0.0f, 0.5f, 0.0f, 0.0f);
-	camUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-
-	//Set the View matrix
-	camView = XMMatrixLookAtLH(camPosition, camTarget, camUp);
-
-	//Set the Projection matrix
-	camProjection = XMMatrixPerspectiveFovLH(0.4f*3.14f, 800.0f / 600.0f, 1.0f, 1000.0f);
 	return true;
 }
 
 
-void GameObject::UpdateMd5()
-{
-	//the loaded models world space
-	meshWorld = XMMatrixIdentity();
-
-	Rotation = XMMatrixRotationY(3.14f);
-	Scale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	Translation = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-
-	meshWorld = Rotation * Scale * Translation;
-
-	Scale = XMMatrixScaling(0.04f, 0.04f, 0.04f);			// The model is a bit too large for our scene, so make it smaller
-	Translation = XMMatrixTranslation(0.0f, 3.0f, 0.0f);
-	smilesWorld = Scale * Translation;
+void GameObject::UpdateMatrix()
+{	
+	if (mType == CUBE)
+	{
+		Scale = XMMatrixScaling(1.0f, 1.0f, 1.0f);
+		smilesWorld = Scale * World;
+	}
+	if (mType == MD5)
+	{
+		Scale = XMMatrixScaling(0.04f, 0.04f, 0.04f);			// The model is a bit too large for our scene, so make it smaller	
+		smilesWorld = Scale * World;
+	}
+	if (mType == OBJ)
+	{
+		Scale = XMMatrixScaling(0.04f, 0.04f, 0.04f);
+		smilesWorld = Scale * World;
+	}
+	
 }
 
 void GameObject::DrawMd5()
 {
+	//Set Vertex and Pixel Shaders
+	con->VSSetShader(VS, 0, 0);
+	con->PSSetShader(PS, 0, 0);
+	//Set the Input Layout
+	con->IASetInputLayout(vertLayout);
+
+	//Set Primitive Topology
+	con->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 	constbuffPerFrame.light = light;
 	con->UpdateSubresource(cbPerFrameBuffer, 0, NULL, &constbuffPerFrame, 0, 0);
 	con->PSSetConstantBuffers(0, 1, &cbPerFrameBuffer);
-
-	
 
 	//Set Vertex and Pixel Shaders
 	con->VSSetShader(VS, 0, 0);
@@ -755,8 +724,8 @@ void GameObject::DrawMd5()
 		con->IASetVertexBuffers(0, 1, &NewMD5Model.subsets[i].vertBuff, &stride, &offset);
 
 		//Set the WVP matrix and send it to the constant buffer in effect file
-		WVP = smilesWorld * camView * camProjection;
-		cbPerObj.WVP = XMMatrixTranspose(WVP);
+		//WVP = 
+		cbPerObj.WVP = XMMatrixTranspose(smilesWorld * camView * camProjection);
 		cbPerObj.World = XMMatrixTranspose(smilesWorld);
 		cbPerObj.hasTexture = true;		// We'll assume all md5 subsets have textures
 		cbPerObj.hasNormMap = false;	// We'll also assume md5 models have no normal map (easy to change later though)
@@ -767,10 +736,21 @@ void GameObject::DrawMd5()
 
 		con->DrawIndexed(NewMD5Model.subsets[i].indices.size(), 0, 0);
 	}
+}
 
+void GameObject::Draw()
+{
+	UpdateMatrix();
+	if (mType == CUBE)
+	{
+		DrawCube();
+	}
+	if (mType == MD5)
+	{
+		DrawMd5();
+	}
+	if (mType == OBJ)
+	{
 
-
-
-	//Present the backbuffer to the screen
-	mapp->swapChain->Present(0, 0);
+	}
 }

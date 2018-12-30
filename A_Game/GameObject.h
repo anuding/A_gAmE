@@ -208,7 +208,7 @@ public:
 	void SetRota();
 
 
-private:
+public:
 
 	XMMATRIX camView = XMMatrixLookAtLH(
 		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
@@ -247,7 +247,8 @@ public:
 		Model3D& MD5Model,
 		std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
 		std::vector<std::wstring> texFileNameArray);
-
+	bool LoadMD5Anim(std::wstring filename, Model3D& MD5Model);
+	void UpdateMD5Model(Model3D& MD5Model, float deltaTime, int animation);
 	void Draw();
 };
 

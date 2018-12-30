@@ -83,6 +83,10 @@ void Update()
 		moveVector += front;
 	if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //响应键盘下方向键
 		moveVector += back;
+	if (::GetAsyncKeyState('R') & 0x8000f)  //响应键盘R键
+		pl->UpdateMD5Model(pl->NewMD5Model, 0.0005f, 0);
+	if (::GetAsyncKeyState('E') & 0x8000f)  //响应键盘R键
+		pl->UpdateMD5Model(pl->NewMD5Model, 0.0005f, 1);
 	XMMATRIX world;
 	XMFLOAT4 deltainDir;
 	XMStoreFloat4(&deltainDir, moveVector); //从Boss指向player的向量  
@@ -166,9 +170,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	MainScene mainscene(hInstance);
 	mainscene.InitApp();
 
-	GameObject* boss = new GameObject(mainscene.mApp,MD5, L"hellknight.md5mesh");
+	GameObject* boss = new GameObject(mainscene.mApp,MD5, L"boy.md5mesh");
 
-	GameObject* player = new GameObject(mainscene.mApp, MD5, L"boy.md5mesh");
+	GameObject* player = new GameObject(mainscene.mApp, MD5, L"hellknight.md5mesh");
 	//player->mCBuffer.world= XMMatrixTranspose(XMMatrixRotationX(0.5f) * XMMatrixRotationY(0.4f));
 	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
 

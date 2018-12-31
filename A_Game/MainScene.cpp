@@ -1,16 +1,12 @@
-#include "d3dUtility.h"
-#include "GameObject.h"
+ï»¿#include "d3dUtility.h"
+//#include "GameObject.h"
 #include "Camera.h"
-//#include "debugprint.h"
+#include "debugprint.h"
 #include <iostream>
+#include "UpdateMethods.h"
 Camera* cam;
 std::vector<GameObject*> GameObjectList;
-//float fMoveX = 0.0f;
-//float fMoveY = 0.0f;
-//float fMoveZ = 0.0f;
-//__m128 MoveX = _mm_set1_ps(fMoveX);
-//__m128 MoveY = _mm_set1_ps(fMoveY);
-//__m128 MoveZ = _mm_set1_ps(fMoveZ);
+
 
 float CamdeltaX = 3.0f;
 float CamdeltaZ = -5.0f;
@@ -23,7 +19,7 @@ public:
 	//virtual void Update(const GameTimer& gt)override;
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 public:
-	
+
 };
 MainScene::MainScene(HINSTANCE hInstance) : D3DUtility(hInstance)
 {
@@ -37,8 +33,8 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONDOWN:
 	{
-		MessageBox(hwnd, L"ÄãµãÁË×ó¼ü", L"µã»÷ÊÂ¼þ", MB_OK);
-		
+		MessageBox(hwnd, L"ä½ ç‚¹äº†å·¦é”®", L"ç‚¹å‡»äº‹ä»¶", MB_OK);
+
 		break;
 	}
 	case WM_DESTROY:
@@ -47,128 +43,63 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_KEYDOWN:
 	{
-		//¼ÆËãplayerµ½BossµÄ·½Ïò
-		GameObject* bo = GameObjectList[1];
-		GameObject* pl = GameObjectList[0];
-		XMFLOAT4 originPos;//BossÔ­±¾µÄÎ»ÖÃ
-		XMStoreFloat4(&originPos, pl->GetPos());
-		XMVECTOR dir = bo->GetPos() - pl->GetPos();
-		
-		XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
-		XMVECTOR front = XMVector3Normalize(dir);
-		XMVECTOR back = -front;
-		XMVECTOR right = XMVector3Cross(dir, tmp);
-		XMVECTOR left = -right;
-		//float playerSpeed = 1.0f;
-
-		XMVECTOR moveVector=XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
-		if (wParam == 'W')//W 0x57
-		{
-			moveVector +=  front;
-		}
-		if (wParam == 'S')//W 0x57
-		{
-			moveVector +=  back;
-		}
-		if (wParam == 'A')//W 0x57
-		{
-			moveVector +=  left;
-		}
-		if (wParam == 'D')//W 0x57
-		{
-			moveVector +=  right;
-		}
-		XMMATRIX world;
-		XMFLOAT4 deltainDir;
-		XMStoreFloat4(&deltainDir, moveVector); //´ÓBossÖ¸ÏòplayerµÄÏòÁ¿  
-		float destX; float destY; float destZ;//BossÓ¦¸ÃÒÆ¶¯µ½µÄÎ»ÖÃ
-		destX = originPos.x + deltainDir.x*0.1f;
-		destY = originPos.y + deltainDir.y*0.1f;
-		destZ = originPos.z + deltainDir.z*0.1f;
 
-		world = XMMatrixTranslation(destX, destY, destZ);
-		
-		GameObjectList[0]->SetWorldMatrix(world);
 		break;
 	}
-		
-		
+
+
 	}
 	return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 
 
-
-
-
-
 //
-////**************ÒÔÏÂÎª¿ò¼Üº¯Êý******************
-
-
-
+////**************ä»¥ä¸‹ä¸ºæ¡†æž¶å‡½æ•°******************
+void Update(float dt)
+{
+	UpdatePlayer(GameObjectList);
+	UpdateBoss(GameObjectList);
+	cam->Follow();
+}
 
 bool Display(D3DUtility* mApp)
 {
 	if (mApp->device)
 	{
-		float camSpeed = 1.0f / 360;
-		if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //ÏìÓ¦¼üÅÌ×ó·½Ïò¼ü
-			CamdeltaX -= camSpeed;
-		if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //ÏìÓ¦¼üÅÌÓÒ·½Ïò¼ü
-			CamdeltaX += camSpeed;
-		if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //ÏìÓ¦¼üÅÌÉÏ·½Ïò¼ü
-			CamdeltaZ += camSpeed;
-		if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //ÏìÓ¦¼üÅÌÏÂ·½Ïò¼ü
-			CamdeltaZ -= camSpeed;
-
-		cam->SetCamPosition(CamdeltaX, CamdeltaZ);
-		//cam->Follow();
-
 		int count = GameObjectList.size();
-		for (int i = 0; i < count; i++)
-		{
-			if (strcmp(GameObjectList[i]->tag, "boss") == 0)
-			{
-				GameObjectList[i]->BOSS();//Ã¿´Î×·×ÙÒ»µãµã
-			}
-		}
 
-		//ÉùÃ÷Ò»¸öÊý×é´æ·ÅÑÕÉ«ÐÅÏ¢£¬4¸öÔªËØ·Ö±ð±íÊ¾ºì£¬ÂÌ£¬À¶ÒÔ¼°alpha
-		float ClearColor[4] = { 0.2f, 0.125f, 0.3f, 1.0f };
-		//Çå³ýäÖÈ¾Ä¿±êÊÓÍ¼
-		mApp->immediateContext->ClearRenderTargetView(mApp->renderTargetView.Get(), ClearColor);
-		mApp->immediateContext->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
-		//for (auto iter = GameObjectList.cbegin(); iter != GameObjectList.cend(); iter++)
-		//{
-		//	&iter->;
-		//}
-		//int count = GameObjectList.size();
+		ID3D11Device* dev;
+		ID3D11DeviceContext* con;
+		dev = mApp->device.Get();
+		con = mApp->immediateContext.Get();
+		static float black[4] = { 0.7f, 0.7f, 0.7f, 1.0f };	// RGBA = (0,0,0,255)
+		con->ClearRenderTargetView(mApp->renderTargetView.Get(), reinterpret_cast<const float*>(&black));
+		con->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
 		for (int i = 0; i < count; i++)
 		{
-			GameObjectList[i]->technique->GetPassByIndex(0)->Apply(0, mApp->immediateContext.Get());
-			//mApp->immediateContext->DrawIndexed(36, 0, 0);
-			mApp->immediateContext->Draw(36, 0);   //»æÖÆÁ¢·½Ìå
+
+			GameObjectList[i]->Draw();
+
 		}
-	
 		mApp->swapChain->Present(0, 0);
 	}
 	return true;
 }
-//**************¿ò¼Üº¯Êý******************
+//**************æ¡†æž¶å‡½æ•°******************
 
 int MainScene::Running()
 {
 	// Run the message loop.
 	MSG msg = { 0 };
-
+	mTimer.Reset();
 	while (msg.message != WM_QUIT)
 	{
-		//·Ö·¢ÏûÏ¢,ÏûÏ¢¿ÉÒÔ¸Ä±ä¶¯»­äÖÈ¾ÖÐµÄÄ³Ð©²ÎÊý,±ÈÈçÈËÎïÔË¶¯,
-		//Ïà»úÊÓ½ÇµÈµÈ...,ÏûÏ¢µÄ´¦Àí½«·ÅÔÚÏÂÃæÏûÏ¢´¦Àí(Procedure)À´Ëµ
+		//åˆ†å‘æ¶ˆæ¯,æ¶ˆæ¯å¯ä»¥æ”¹å˜åŠ¨ç”»æ¸²æŸ“ä¸­çš„æŸäº›å‚æ•°,æ¯”å¦‚äººç‰©è¿åŠ¨,
+		//ç›¸æœºè§†è§’ç­‰ç­‰...,æ¶ˆæ¯çš„å¤„ç†å°†æ”¾åœ¨ä¸‹é¢æ¶ˆæ¯å¤„ç†(Procedure)æ¥è¯´
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
 
@@ -178,10 +109,12 @@ int MainScene::Running()
 		}
 		else
 		{
-			//ÔÚÕâÀï½øÐÐ¶¯»­¼ÆËãºÍäÖÈ¾
-			//Update();//¶¯»­¼ÆËã
-			Display(mApp);//äÖÈ¾
-			
+			mTimer.Tick();
+			//åœ¨è¿™é‡Œè¿›è¡ŒåŠ¨ç”»è®¡ç®—å’Œæ¸²æŸ“
+			Update(mTimer.DeltaTime());//åŠ¨ç”»è®¡ç®—
+			//cam->SetCamPosition(0.0f,0.0f);
+			Display(mApp);//æ¸²æŸ“
+
 		}
 	}
 
@@ -190,7 +123,7 @@ int MainScene::Running()
 
 
 //
-// Ö÷º¯ÊýWinMain
+// ä¸»å‡½æ•°WinMain
 //
 int WINAPI WinMain(HINSTANCE hInstance,
 	HINSTANCE prevInstance,
@@ -200,32 +133,30 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	MainScene mainscene(hInstance);
 	mainscene.InitApp();
+	char chplayer[20] = "player";
+	char chboss[20] = "boss";
+	GameObject* player = new GameObject(mainscene.mApp, MD5, L"Models/mpplayer.md5mesh", chplayer);
+	GameObject* boss = new GameObject(mainscene.mApp, MD5, L"Models/cyberdemon.md5mesh", chboss);
 
-	GameObject* player = new GameObject(mainscene.mApp);
-	GameObject* boss = new GameObject(mainscene.mApp);
-
-	const WCHAR *pwcsName = L"player.dds";
-	player->buildTexture(pwcsName);
-	strcpy_s(player->tag,"player");
-
-
-	pwcsName=L"boss.dds";
-	boss->buildTexture(pwcsName);
-	strcpy_s(boss->tag, "boss");
+	GameObject* cubeOri = new GameObject(mainscene.mApp);
 
 
+	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
+
+	GameObject* grass = new GameObject(mainscene.mApp, OBJ, L"Models/cyberdemon.md5mesh", chboss);
+	grass->SetWorldMatrix(XMMatrixRotationX(XM_PI));
 	
-
 	GameObjectList.push_back(player);
 	GameObjectList.push_back(boss);
+	GameObjectList.push_back(cubeOri);
+GameObjectList.push_back(grass);
 
-	boss->communicateList =&GameObjectList;
-
-	player->SetWorldMatrix(XMMatrixTranslation(5, 0, 0));
+	boss->communicateList = &GameObjectList;
 	cam = new Camera(GameObjectList);
-
-
+	
+	
 	mainscene.Running();
+
 
 
 	return 0;

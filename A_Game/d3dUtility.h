@@ -14,11 +14,13 @@ using namespace DirectX;
 //DirectX11相关头文件
 #include <d3d11.h>
 #include <d3dcompiler.h>
-
-//Effect11 头文件
-#include <d3dx11effect.h>
-
-
+#include "GameTimer.h"
+//文件流
+#include <fstream>
+#include <istream>
+#include <sstream>
+#include <dwrite.h>
+#include <dinput.h>
 //DirectX11相关库
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -28,10 +30,13 @@ using namespace DirectX;
 class D3DUtility
 {
 public:
+	ID3D11Buffer* cbPerObjectBuffer;
+
 	D3DUtility(HINSTANCE hInstance);
 	HINSTANCE mhAppInst = nullptr;
 	HWND  mhMainWnd = nullptr;
 	WNDCLASS wc = { };
+	GameTimer mTimer;
 //protected:
 	virtual bool InitApp();
 	static D3DUtility* mApp;

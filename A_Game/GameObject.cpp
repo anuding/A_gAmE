@@ -29,7 +29,6 @@ GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename,c
 			LoadMD5Anim(L"Models/Anim/player/fists_idle.md5anim", NewMD5Model); 
 			LoadMD5Anim(L"Models/Anim/player/run.md5anim", NewMD5Model);
 			LoadMD5Anim(L"Models/Anim/player/fists_punch1.md5anim", NewMD5Model);
-			//LoadMD5Anim(L"model2/walkjump1.md5anim", NewMD5Model);
 		}
 		if (strcmp(this->tag, "boss") == 0)
 		{
@@ -59,8 +58,10 @@ GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename,c
 		sampDesc.MinLOD = 0;
 		sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
+
 		//Create the Sample State
 		dev->CreateSamplerState(&sampDesc, &CubesTexSamplerState);
+
 
 		D3D11_BLEND_DESC blendDesc;
 		ZeroMemory(&blendDesc, sizeof(blendDesc));

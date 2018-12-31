@@ -18,8 +18,9 @@ using namespace DirectX;
 //文件流
 #include <fstream>
 #include <istream>
-
-
+#include <sstream>
+#include <dwrite.h>
+#include <dinput.h>
 //DirectX11相关库
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")

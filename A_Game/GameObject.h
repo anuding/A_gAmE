@@ -122,6 +122,17 @@ struct Model3D
 	std::vector<ModelAnimation> animations;
 	///////////////**************new**************////////////////////
 };
+
+struct SurfaceMaterial
+{
+	std::wstring matName;
+	XMFLOAT4 difColor;
+	int texArrayIndex;
+	int normMapTexArrayIndex;
+	bool hasNormMap;
+	bool hasTexture;
+	bool transparent;
+};
 struct Light
 {
 	Light()
@@ -169,9 +180,12 @@ enum TYPE
 //	IDLE = 0,
 //	RUN = 1,
 //	PUNCH =2,
-//
-//
 //};
+
+
+
+
+/*************************************************************************************************/
 
 class GameObject
 {
@@ -180,7 +194,14 @@ public:
 	char tag[20]="";
 	TYPE mType=CUBE;
 
-	void BOSS();
+
+	int meshSubsets = 0;
+	ID3D11Buffer* meshVertBuff;
+	ID3D11Buffer* meshIndexBuff;
+	std::vector<int> meshSubsetIndexStart;
+	std::vector<int> meshSubsetTexture;
+	XMMATRIX meshWorld;
+
 	GameObject(D3DUtility* app);
 	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename, char *tag);
 	~GameObject();
@@ -207,17 +228,19 @@ public:
 	
 	ID3D11Buffer* cbPerObjectBuffer;//常量缓冲区 for Matrix
 	ID3D11Buffer* cbPerFrameBuffer;//MD5专用个屁
-
+	std::vector<SurfaceMaterial> material;
 	cbPerObject cbPerObj;//Matrix staff
 	D3DUtility* mapp;
 
 	XMVECTOR GetPos();
-	void GetRota();
-	void SetPos();
-	void SetRota();
 
 
 public:
+	ID3D11SamplerState* CubesTexSamplerState;
+	ID3D11BlendState* Transparency;
+	ID3D11RasterizerState* RSCullNone;
+	ID3D11RasterizerState* CCWcullMode;
+	ID3D11RasterizerState* CWcullMode;
 
 	XMMATRIX camView = XMMatrixLookAtLH(
 		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
@@ -249,13 +272,21 @@ public:
 	void UpdateMatrix();
 	void DrawMd5();
 	void DrawCube();
+	void DrawObj();
 public:
-	bool Setup();
-	//LoadMD5Model() function prototype
 	bool LoadMD5Model(std::wstring filename,
 		Model3D& MD5Model,
 		std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
 		std::vector<std::wstring> texFileNameArray);
+	bool LoadObjModel(std::wstring filename,
+		ID3D11Buffer** vertBuff,
+		ID3D11Buffer** indexBuff,
+		std::vector<int>& subsetIndexStart,
+		std::vector<int>& subsetMaterialArray,
+		std::vector<SurfaceMaterial>& material,
+		int& subsetCount,
+		bool isRHCoordSys,
+		bool computeNormals);
 	bool LoadMD5Anim(std::wstring filename, Model3D& MD5Model);
 	void UpdateMD5Model(Model3D& MD5Model, float deltaTime, int animation);
 	void Draw();

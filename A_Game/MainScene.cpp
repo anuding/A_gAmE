@@ -112,6 +112,7 @@ int MainScene::Running()
 			mTimer.Tick();
 			//在这里进行动画计算和渲染
 			Update(mTimer.DeltaTime());//动画计算
+			//cam->SetCamPosition(0.0f,0.0f);
 			Display(mApp);//渲染
 
 		}
@@ -142,14 +143,18 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
 
-
-
+	GameObject* grass = new GameObject(mainscene.mApp, OBJ, L"Models/cyberdemon.md5mesh", chboss);
+	grass->SetWorldMatrix(XMMatrixRotationX(XM_PI));
+	
 	GameObjectList.push_back(player);
 	GameObjectList.push_back(boss);
 	GameObjectList.push_back(cubeOri);
+GameObjectList.push_back(grass);
 
 	boss->communicateList = &GameObjectList;
 	cam = new Camera(GameObjectList);
+	
+	
 	mainscene.Running();
 
 

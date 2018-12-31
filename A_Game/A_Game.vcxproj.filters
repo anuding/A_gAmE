@@ -65,6 +65,8 @@
     <None Include="Shader\Shader.fx">
       <Filter>Shader</Filter>
     </None>
-    <None Include="Effects.fx" />
+    <None Include="Effects.fx">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

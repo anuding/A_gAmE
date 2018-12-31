@@ -1,8 +1,9 @@
-#include "d3dUtility.h"
+ï»¿#include "d3dUtility.h"
 //#include "GameObject.h"
 #include "Camera.h"
 #include "debugprint.h"
 #include <iostream>
+#include "UpdateMethods.h"
 Camera* cam;
 std::vector<GameObject*> GameObjectList;
 
@@ -18,7 +19,7 @@ public:
 	//virtual void Update(const GameTimer& gt)override;
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 public:
-	
+
 };
 MainScene::MainScene(HINSTANCE hInstance) : D3DUtility(hInstance)
 {
@@ -32,8 +33,8 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONDOWN:
 	{
-		MessageBox(hwnd, L"ÄãµãÁË×ó¼ü", L"µã»÷ÊÂ¼þ", MB_OK);
-		
+		MessageBox(hwnd, L"ä½ ç‚¹äº†å·¦é”®", L"ç‚¹å‡»äº‹ä»¶", MB_OK);
+
 		break;
 	}
 	case WM_DESTROY:
@@ -44,61 +45,23 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
-		
+
 		break;
 	}
-		
-		
+
+
 	}
 	return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 
+
 //
-////**************ÒÔÏÂÎª¿ò¼Üº¯Êý******************
-void Update()
+////**************ä»¥ä¸‹ä¸ºæ¡†æž¶å‡½æ•°******************
+void Update(float dt)
 {
-	//¼ÆËãplayerµ½BossµÄ·½Ïò
-	GameObject* bo = GameObjectList[1];
-	GameObject* pl = GameObjectList[0];
-	XMFLOAT4 originPos;//BossÔ­±¾µÄÎ»ÖÃ
-	XMStoreFloat4(&originPos, pl->GetPos());
-	XMVECTOR dir = bo->GetPos() - pl->GetPos();
-
-	XMVECTOR tmp = XMVectorSet(0.0f, -1.0f, 0.0f, 1.0f);
-	XMVECTOR front = XMVector3Normalize(dir);
-	XMVECTOR back = -front;
-	XMVECTOR right = XMVector3Cross(dir, tmp);
-	XMVECTOR left = -right;
-	//float playerSpeed = 1.0f;
-
-	XMVECTOR moveVector = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-
-	float camSpeed = 1.0f / 360;
-	if (::GetAsyncKeyState(VK_LEFT) & 0x8000f) //ÏìÓ¦¼üÅÌ×ó·½Ïò¼ü
-		moveVector += left;
-	if (::GetAsyncKeyState(VK_RIGHT) & 0x8000f) //ÏìÓ¦¼üÅÌÓÒ·½Ïò¼ü
-		moveVector += right;
-	if (::GetAsyncKeyState(VK_UP) & 0x8000f)    //ÏìÓ¦¼üÅÌÉÏ·½Ïò¼ü
-		moveVector += front;
-	if (::GetAsyncKeyState(VK_DOWN) & 0x8000f)  //ÏìÓ¦¼üÅÌÏÂ·½Ïò¼ü
-		moveVector += back;
-	if (::GetAsyncKeyState('R') & 0x8000f)  //ÏìÓ¦¼üÅÌR¼ü
-		pl->UpdateMD5Model(pl->NewMD5Model, 0.0005f, 0);
-	if (::GetAsyncKeyState('E') & 0x8000f)  //ÏìÓ¦¼üÅÌR¼ü
-		pl->UpdateMD5Model(pl->NewMD5Model, 0.0005f, 1);
-	XMMATRIX world;
-	XMFLOAT4 deltainDir;
-	XMStoreFloat4(&deltainDir, moveVector); //´ÓBossÖ¸ÏòplayerµÄÏòÁ¿  
-	float destX; float destY; float destZ;//BossÓ¦¸ÃÒÆ¶¯µ½µÄÎ»ÖÃ
-	destX = originPos.x + deltainDir.x*0.0007f;
-	destY = originPos.y + deltainDir.y*0.0007f;
-	destZ = originPos.z + deltainDir.z*0.0007f;
-
-	world = XMMatrixTranslation(destX, destY, destZ);
-
-	GameObjectList[0]->SetWorldMatrix(world);
-
+	UpdatePlayer(GameObjectList);
+	UpdateBoss(GameObjectList);
 	cam->Follow();
 }
 
@@ -112,32 +75,31 @@ bool Display(D3DUtility* mApp)
 		ID3D11DeviceContext* con;
 		dev = mApp->device.Get();
 		con = mApp->immediateContext.Get();
-		static float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };	// RGBA = (0,0,0,255)
+		static float black[4] = { 0.7f, 0.7f, 0.7f, 1.0f };	// RGBA = (0,0,0,255)
 		con->ClearRenderTargetView(mApp->renderTargetView.Get(), reinterpret_cast<const float*>(&black));
 		con->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		
 
 		for (int i = 0; i < count; i++)
 		{
 
 			GameObjectList[i]->Draw();
-			
+
 		}
 		mApp->swapChain->Present(0, 0);
 	}
 	return true;
 }
-//**************¿ò¼Üº¯Êý******************
+//**************æ¡†æž¶å‡½æ•°******************
 
 int MainScene::Running()
 {
 	// Run the message loop.
 	MSG msg = { 0 };
-
+	mTimer.Reset();
 	while (msg.message != WM_QUIT)
 	{
-		//·Ö·¢ÏûÏ¢,ÏûÏ¢¿ÉÒÔ¸Ä±ä¶¯»­äÖÈ¾ÖÐµÄÄ³Ð©²ÎÊý,±ÈÈçÈËÎïÔË¶¯,
-		//Ïà»úÊÓ½ÇµÈµÈ...,ÏûÏ¢µÄ´¦Àí½«·ÅÔÚÏÂÃæÏûÏ¢´¦Àí(Procedure)À´Ëµ
+		//åˆ†å‘æ¶ˆæ¯,æ¶ˆæ¯å¯ä»¥æ”¹å˜åŠ¨ç”»æ¸²æŸ“ä¸­çš„æŸäº›å‚æ•°,æ¯”å¦‚äººç‰©è¿åŠ¨,
+		//ç›¸æœºè§†è§’ç­‰ç­‰...,æ¶ˆæ¯çš„å¤„ç†å°†æ”¾åœ¨ä¸‹é¢æ¶ˆæ¯å¤„ç†(Procedure)æ¥è¯´
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
 
@@ -147,10 +109,11 @@ int MainScene::Running()
 		}
 		else
 		{
-			//ÔÚÕâÀï½øÐÐ¶¯»­¼ÆËãºÍäÖÈ¾
-			Update();//¶¯»­¼ÆËã
-			Display(mApp);//äÖÈ¾
-			
+			mTimer.Tick();
+			//åœ¨è¿™é‡Œè¿›è¡ŒåŠ¨ç”»è®¡ç®—å’Œæ¸²æŸ“
+			Update(mTimer.DeltaTime());//åŠ¨ç”»è®¡ç®—
+			Display(mApp);//æ¸²æŸ“
+
 		}
 	}
 
@@ -159,7 +122,7 @@ int MainScene::Running()
 
 
 //
-// Ö÷º¯ÊýWinMain
+// ä¸»å‡½æ•°WinMain
 //
 int WINAPI WinMain(HINSTANCE hInstance,
 	HINSTANCE prevInstance,
@@ -169,19 +132,22 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	MainScene mainscene(hInstance);
 	mainscene.InitApp();
+	char chplayer[20] = "player";
+	char chboss[20] = "boss";
+	GameObject* player = new GameObject(mainscene.mApp, MD5, L"Models/mpplayer.md5mesh", chplayer);
+	GameObject* boss = new GameObject(mainscene.mApp, MD5, L"Models/cyberdemon.md5mesh", chboss);
 
-	GameObject* boss = new GameObject(mainscene.mApp,MD5, L"boy.md5mesh");
+	GameObject* cubeOri = new GameObject(mainscene.mApp);
 
-	GameObject* player = new GameObject(mainscene.mApp, MD5, L"hellknight.md5mesh");
-	//player->mCBuffer.world= XMMatrixTranspose(XMMatrixRotationX(0.5f) * XMMatrixRotationY(0.4f));
+
 	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
 
 
 
 	GameObjectList.push_back(player);
 	GameObjectList.push_back(boss);
-	
-	
+	GameObjectList.push_back(cubeOri);
+
 	boss->communicateList = &GameObjectList;
 	cam = new Camera(GameObjectList);
 	mainscene.Running();

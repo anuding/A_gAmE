@@ -5,7 +5,7 @@
 Camera::Camera(std::vector<GameObject*> List)
 {
 	mList = List;
-	XMVECTOR Eye = XMVectorSet(3.0f, 5.0f, -5.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f);
 	campos = Eye;
 	XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
@@ -55,15 +55,15 @@ void Camera::Follow()
 	XMVECTOR dir = bosspos-playerpos;
 	
 
-	XMVECTOR playerBack = playerpos - XMVector3Normalize(dir)* 10.5f;
+	XMVECTOR playerBack = playerpos - XMVector3Normalize(dir)* 3.5f;
 	XMFLOAT4 fplayerBack;
 	XMStoreFloat4(&fplayerBack, playerBack);
-	fplayerBack.y = 7.0f;//玩家背后的位置, 也就是camera最终要去的地方
+	fplayerBack.y = 3.5f;//玩家背后的位置, 也就是camera最终要去的地方
 
 
 	//下一帧camera的位置Eye = Normalized(currentPos - fplayerBack)*0.1f
 	XMVECTOR dir2 = XMLoadFloat4(&fplayerBack) - campos;
-	XMVECTOR Eye = XMVector3Normalize(dir2)*0.003f+campos;
+	XMVECTOR Eye = XMVector3Normalize(dir2)*0.007f+campos;
 	campos = Eye;
 	XMVECTOR At = playerpos+dir/2.0f;
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);

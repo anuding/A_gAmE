@@ -164,6 +164,15 @@ enum TYPE
 	OBJ=3
 };
 
+//enum ANIM
+//{
+//	IDLE = 0,
+//	RUN = 1,
+//	PUNCH =2,
+//
+//
+//};
+
 class GameObject
 {
 public:
@@ -173,7 +182,7 @@ public:
 
 	void BOSS();
 	GameObject(D3DUtility* app);
-	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename);
+	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename, char *tag);
 	~GameObject();
 
 	void SetWorldMatrix(XMMATRIX mworld);

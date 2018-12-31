@@ -14,7 +14,7 @@ using namespace DirectX;
 //DirectX11相关头文件
 #include <d3d11.h>
 #include <d3dcompiler.h>
-
+#include "GameTimer.h"
 //文件流
 #include <fstream>
 #include <istream>
@@ -35,6 +35,7 @@ public:
 	HINSTANCE mhAppInst = nullptr;
 	HWND  mhMainWnd = nullptr;
 	WNDCLASS wc = { };
+	GameTimer mTimer;
 //protected:
 	virtual bool InitApp();
 	static D3DUtility* mApp;

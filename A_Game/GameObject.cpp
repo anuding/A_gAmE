@@ -13,18 +13,29 @@ GameObject::GameObject(D3DUtility* app)
 	InitCube();
 }
 
-GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename)
+GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename,char *tag)
 {
 	//CUBE 构造函数
 	mapp = app;
 	dev = app->device.Get();
 	con = app->immediateContext.Get();
 	mType = modelType;
+	strcpy_s(this->tag, tag);
 	if (modelType == MD5)
 	{
 		LoadMD5Model(filename, NewMD5Model, meshSRV, textureNameArray);
-		LoadMD5Anim(L"walk7.md5anim", NewMD5Model);
-		LoadMD5Anim(L"roar1.md5anim", NewMD5Model);
+		if (strcmp(this->tag, "player") == 0)
+		{
+			LoadMD5Anim(L"Models/Anim/player/fists_idle.md5anim", NewMD5Model); 
+			LoadMD5Anim(L"Models/Anim/player/run.md5anim", NewMD5Model);
+			LoadMD5Anim(L"Models/Anim/player/fists_punch1.md5anim", NewMD5Model);
+			//LoadMD5Anim(L"model2/walkjump1.md5anim", NewMD5Model);
+		}
+		if (strcmp(this->tag, "boss") == 0)
+		{
+			LoadMD5Anim(L"Models/Anim/boss/walk3.md5anim", NewMD5Model);
+			LoadMD5Anim(L"Models/Anim/boss/oneshot.md5anim", NewMD5Model);
+		}
 		InitMd5();
 	}
 	if (modelType == OBJ)

@@ -1,3 +1,6 @@
+## Add folder "Models" along side with cpp files
+
+you can find folder "Models" in this link https://drive.google.com/file/d/1Ko6ahWcgevVSl4awVajqA85gHJXi34lu/view?usp=sharing , extract it and place it with cpp files.
 ## Can't load the project?
 To load the proj you should to rename **A_Game/A_Game.vcxproj.example** to **A_Game/A_Game.vcxproj** and change your toolset if needed.
 For windows7 users, you may have to configure your own DirectX11 SDK paths in 

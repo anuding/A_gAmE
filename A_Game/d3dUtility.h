@@ -26,7 +26,10 @@ using namespace DirectX;
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "winmm.lib")
-
+#include <d3dx11effect.h>
+#include <Effects.h>
+#include <Model.h>
+#include <CommonStates.h>
 class D3DUtility
 {
 public:

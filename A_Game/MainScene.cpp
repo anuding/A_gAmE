@@ -7,6 +7,8 @@
 Camera* cam;
 std::vector<GameObject*> GameObjectList;
 
+std::shared_ptr<EffectFactory>       m_fxFactory;
+std::shared_ptr<CommonStates>        m_states;
 
 float CamdeltaX = 3.0f;
 float CamdeltaZ = -5.0f;
@@ -77,13 +79,15 @@ bool Display(D3DUtility* mApp)
 		con = mApp->immediateContext.Get();
 		static float black[4] = { 0.7f, 0.7f, 0.7f, 1.0f };	// RGBA = (0,0,0,255)
 		con->ClearRenderTargetView(mApp->renderTargetView.Get(), reinterpret_cast<const float*>(&black));
+		
 		con->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
+		//static float dis = 0.0f;
+		//dis += 0.001f;
+		//GameObjectList[2]->SetWorldMatrix(XMMatrixTranslation(0, 0, dis));
 		for (int i = 0; i < count; i++)
 		{
-
+			con->OMSetDepthStencilState(m_states->DepthDefault(), 0);
 			GameObjectList[i]->Draw();
-
 		}
 		mApp->swapChain->Present(0, 0);
 	}
@@ -135,29 +139,32 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	mainscene.InitApp();
 	char chplayer[20] = "player";
 	char chboss[20] = "boss";
-	GameObject* player = new GameObject(mainscene.mApp, MD5, L"Models/mpplayer.md5mesh", chplayer);
-	GameObject* boss = new GameObject(mainscene.mApp, MD5, L"Models/cyberdemon.md5mesh", chboss);
+	m_fxFactory.reset(new EffectFactory(mainscene.mApp->device.Get()));
+	m_states.reset(new CommonStates(mainscene.mApp->device.Get()));
+
+
+	GameObject* player = new GameObject(mainscene.mApp, MD5, L"Models/mpplayer.md5mesh", chplayer, m_fxFactory, m_states);
+	GameObject* boss = new GameObject(mainscene.mApp, MD5, L"Models/cyberdemon.md5mesh", chboss, m_fxFactory, m_states);
 
 	GameObject* cubeOri = new GameObject(mainscene.mApp);
-
+	GameObject* tele = new GameObject(mainscene.mApp,SDKMESH,L"Models/cyberdemon.md5mesh", chboss, m_fxFactory, m_states);
 
 	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
 
-	GameObject* grass = new GameObject(mainscene.mApp, OBJ, L"Models/cyberdemon.md5mesh", chboss);
-	grass->SetWorldMatrix(XMMatrixRotationX(XM_PI));
+	
 	
 	GameObjectList.push_back(player);
 	GameObjectList.push_back(boss);
+	GameObjectList.push_back(tele);
 	GameObjectList.push_back(cubeOri);
-GameObjectList.push_back(grass);
+
+
 
 	boss->communicateList = &GameObjectList;
 	cam = new Camera(GameObjectList);
-	
+
 	
 	mainscene.Running();
-
-
 
 	return 0;
 }

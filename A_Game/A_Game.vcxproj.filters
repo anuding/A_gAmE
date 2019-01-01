@@ -56,16 +56,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Shader\LightShader.fx">
+    <None Include="Shader\CubeShader.fx">
       <Filter>Shader</Filter>
     </None>
-    <None Include="Shader\SimpleShader.fx">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="Shader\Shader.fx">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="Effects.fx">
+    <None Include="MD5Shader.fx">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

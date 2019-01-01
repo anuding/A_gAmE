@@ -55,7 +55,7 @@ void Camera::Follow()
 	XMVECTOR dir = bosspos-playerpos;
 	
 
-	XMVECTOR playerBack = playerpos - XMVector3Normalize(dir)* 3.5f;
+	XMVECTOR playerBack = playerpos - XMVector3Normalize(dir)* 6.5f;
 	XMFLOAT4 fplayerBack;
 	XMStoreFloat4(&fplayerBack, playerBack);
 	fplayerBack.y = 3.5f;//玩家背后的位置, 也就是camera最终要去的地方
@@ -65,7 +65,7 @@ void Camera::Follow()
 	XMVECTOR dir2 = XMLoadFloat4(&fplayerBack) - campos;
 	XMVECTOR Eye = XMVector3Normalize(dir2)*0.007f+campos;
 	campos = Eye;
-	XMVECTOR At = playerpos+dir/2.0f;
+	XMVECTOR At = playerpos+dir/1.2f;
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	XMMATRIX view = XMMatrixLookAtLH(Eye, At, Up);//eye= currentPos
 	XMMATRIX projection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 800.0f / 600.0f, 0.01f, 100.0f);

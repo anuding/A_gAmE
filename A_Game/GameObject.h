@@ -45,7 +45,7 @@ struct Joint
 	XMFLOAT3 pos;
 	XMFLOAT4 orientation;
 };
-struct BoundingBox
+struct BoundingBoxMD5
 {
 	XMFLOAT3 min;
 	XMFLOAT3 max;
@@ -77,7 +77,7 @@ struct ModelAnimation
 	float currAnimTime;
 
 	std::vector<AnimJointInfo> jointInfo;
-	std::vector<BoundingBox> frameBounds;
+	std::vector<BoundingBoxMD5> frameBounds;
 	std::vector<Joint>	baseFrameJoints;
 	std::vector<FrameData>	frameData;
 	std::vector<std::vector<Joint>> frameSkeleton;
@@ -172,17 +172,9 @@ enum TYPE
 {
 	CUBE = 1,
 	MD5=2,
-	OBJ=3
+	OBJ=3,//don't use
+	SDKMESH=4
 };
-
-//enum ANIM
-//{
-//	IDLE = 0,
-//	RUN = 1,
-//	PUNCH =2,
-//};
-
-
 
 
 /*************************************************************************************************/
@@ -194,16 +186,26 @@ public:
 	char tag[20]="";
 	TYPE mType=CUBE;
 
+	ID3D11InputLayout* vertexLayout;
+	ID3DX11EffectTechnique* technique;
+	ID3DX11Effect* effect;
+	// 网格顶点缓存
+	ID3D11Buffer				*m_meshVertexBuffer;
+	// 网格索引缓存
+	ID3D11Buffer				*m_meshIndexBuffer;
+	// 文件顶点数据信息
+	std::vector<XMFLOAT3>		m_vertices; //坐标
+	std::vector<XMFLOAT2>		m_textures; //纹理
+	std::vector<XMFLOAT3>		m_normals;  //法向量
 
-	int meshSubsets = 0;
-	ID3D11Buffer* meshVertBuff;
-	ID3D11Buffer* meshIndexBuff;
+
 	std::vector<int> meshSubsetIndexStart;
 	std::vector<int> meshSubsetTexture;
 	XMMATRIX meshWorld;
 
 	GameObject(D3DUtility* app);
-	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename, char *tag);
+	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename, char *tag,
+		std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
 	~GameObject();
 
 	void SetWorldMatrix(XMMATRIX mworld);
@@ -265,28 +267,23 @@ public:
 	XMVECTOR pos= XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	bool InitCube();
 	bool InitMd5();
+	bool InitSdkmesh(std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
 
 
-
-	
 	void UpdateMatrix();
 	void DrawMd5();
 	void DrawCube();
-	void DrawObj();
+	void DrawSdkmesh();
 public:
+	std::unique_ptr<Model>                m_model;
+	//std::unique_ptr<EffectFactory>       m_fxFactory;
+	std::shared_ptr<CommonStates>        m_states;
+
 	bool LoadMD5Model(std::wstring filename,
 		Model3D& MD5Model,
 		std::vector<ID3D11ShaderResourceView*>& shaderResourceViewArray,
 		std::vector<std::wstring> texFileNameArray);
-	bool LoadObjModel(std::wstring filename,
-		ID3D11Buffer** vertBuff,
-		ID3D11Buffer** indexBuff,
-		std::vector<int>& subsetIndexStart,
-		std::vector<int>& subsetMaterialArray,
-		std::vector<SurfaceMaterial>& material,
-		int& subsetCount,
-		bool isRHCoordSys,
-		bool computeNormals);
+	
 	bool LoadMD5Anim(std::wstring filename, Model3D& MD5Model);
 	void UpdateMD5Model(Model3D& MD5Model, float deltaTime, int animation);
 	void Draw();

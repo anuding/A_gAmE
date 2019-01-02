@@ -11,9 +11,10 @@ public:
 	float x = 3.0f;
 	float z = -5.0f;
 	std::vector<GameObject*> mList;
-	XMVECTOR campos=XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+	XMVECTOR campos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 
-	void SetCamPosition(float deltaX, float deltaZ);
+	void SetCamPosition();
+	void PlayerDead();
 	void Follow();
 };
 

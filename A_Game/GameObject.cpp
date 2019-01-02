@@ -12,6 +12,129 @@ GameObject::GameObject(D3DUtility* app)
 
 	InitCube();
 }
+void GameObject::CreateSphere(D3DUtility* mApp, int LatLines, int LongLines)
+{
+	NumSphereVertices = ((LatLines - 2) * LongLines) + 2;
+	NumSphereFaces = ((LatLines - 3)*(LongLines) * 2) + (LongLines * 2);
+
+	float sphereYaw = 0.0f;
+	float spherePitch = 0.0f;
+
+	std::vector<Vertex> vertices(NumSphereVertices);
+
+	XMVECTOR currVertPos = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+
+	vertices[0].pos.x = 0.0f;
+	vertices[0].pos.y = 0.0f;
+	vertices[0].pos.z = 1.0f;
+
+	for (DWORD i = 0; i < LatLines - 2; ++i)
+	{
+		spherePitch = (i + 1) * (3.14f / (LatLines - 1));
+		Rotationx = XMMatrixRotationX(spherePitch);
+		for (DWORD j = 0; j < LongLines; ++j)
+		{
+			sphereYaw = j * (6.28f / (LongLines));
+			Rotationy = XMMatrixRotationZ(sphereYaw);
+			currVertPos = XMVector3TransformNormal(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), (Rotationx * Rotationy));
+			currVertPos = XMVector3Normalize(currVertPos);
+			vertices[i*LongLines + j + 1].pos.x = XMVectorGetX(currVertPos);
+			vertices[i*LongLines + j + 1].pos.y = XMVectorGetY(currVertPos);
+			vertices[i*LongLines + j + 1].pos.z = XMVectorGetZ(currVertPos);
+		}
+	}
+
+	vertices[NumSphereVertices - 1].pos.x = 0.0f;
+	vertices[NumSphereVertices - 1].pos.y = 0.0f;
+	vertices[NumSphereVertices - 1].pos.z = -1.0f;
+
+
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
+
+	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	vertexBufferDesc.ByteWidth = sizeof(Vertex) * NumSphereVertices;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA vertexBufferData;
+
+	ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
+	vertexBufferData.pSysMem = &vertices[0];
+	HRESULT hr;
+	hr = dev->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &sphereVertBuffer);
+
+
+	std::vector<DWORD> indices(NumSphereFaces * 3);
+
+	int k = 0;
+	for (DWORD l = 0; l < LongLines - 1; ++l)
+	{
+		indices[k] = 0;
+		indices[k + 1] = l + 1;
+		indices[k + 2] = l + 2;
+		k += 3;
+	}
+
+	indices[k] = 0;
+	indices[k + 1] = LongLines;
+	indices[k + 2] = 1;
+	k += 3;
+
+	for (DWORD i = 0; i < LatLines - 3; ++i)
+	{
+		for (DWORD j = 0; j < LongLines - 1; ++j)
+		{
+			indices[k] = i * LongLines + j + 1;
+			indices[k + 1] = i * LongLines + j + 2;
+			indices[k + 2] = (i + 1)*LongLines + j + 1;
+
+			indices[k + 3] = (i + 1)*LongLines + j + 1;
+			indices[k + 4] = i * LongLines + j + 2;
+			indices[k + 5] = (i + 1)*LongLines + j + 2;
+
+			k += 6; // next quad
+		}
+
+		indices[k] = (i*LongLines) + LongLines;
+		indices[k + 1] = (i*LongLines) + 1;
+		indices[k + 2] = ((i + 1)*LongLines) + LongLines;
+
+		indices[k + 3] = ((i + 1)*LongLines) + LongLines;
+		indices[k + 4] = (i*LongLines) + 1;
+		indices[k + 5] = ((i + 1)*LongLines) + 1;
+
+		k += 6;
+	}
+
+	for (DWORD l = 0; l < LongLines - 1; ++l)
+	{
+		indices[k] = NumSphereVertices - 1;
+		indices[k + 1] = (NumSphereVertices - 1) - (l + 1);
+		indices[k + 2] = (NumSphereVertices - 1) - (l + 2);
+		k += 3;
+	}
+
+	indices[k] = NumSphereVertices - 1;
+	indices[k + 1] = (NumSphereVertices - 1) - LongLines;
+	indices[k + 2] = NumSphereVertices - 2;
+
+	D3D11_BUFFER_DESC indexBufferDesc;
+	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
+
+	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	indexBufferDesc.ByteWidth = sizeof(DWORD) * NumSphereFaces * 3;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+
+	D3D11_SUBRESOURCE_DATA iinitData;
+
+	iinitData.pSysMem = &indices[0];
+	dev->CreateBuffer(&indexBufferDesc, &iinitData, &sphereIndexBuffer);
+
+}
 
 GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename,char *tag, 
 	std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state)
@@ -35,12 +158,22 @@ GameObject::GameObject(D3DUtility * app, TYPE modelType, std::wstring filename,c
 		{
 			LoadMD5Anim(L"Models/Anim/boss/walk3.md5anim", NewMD5Model);
 			LoadMD5Anim(L"Models/Anim/boss/oneshot.md5anim", NewMD5Model);
+			LoadMD5Anim(L"Models/Anim/boss/death.md5anim", NewMD5Model);
+			LoadMD5Anim(L"Models/Anim/boss/af_pose.md5anim", NewMD5Model);
+			LoadMD5Anim(L"Models/Anim/boss/pain_big1.md5anim", NewMD5Model);
+
+			//LoadMD5Anim(L"Models/Anim/boss/.md5anim", NewMD5Model);
 		}
 		InitMd5();
 	}
 	if (modelType == SDKMESH)
 	{
-		InitSdkmesh(fa, state);
+		InitSdkmesh(filename,fa, state);
+	}
+	if (modelType == SKY)
+	{
+		CreateSphere(mapp, 10, 10);
+		initSky(mapp);
 	}
 }
 
@@ -90,14 +223,14 @@ bool GameObject::InitCube()
 
 	VertexForCube vertices[] =
 	{
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
 		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) }
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }
 	};
 
 	// 设置顶点缓冲区描述
@@ -683,12 +816,12 @@ bool GameObject::InitMd5()
 	return true;
 }
 
-bool GameObject::InitSdkmesh(std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state)
+bool GameObject::InitSdkmesh(std::wstring filename,std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state)
 {
 	m_states = state;
 	fa.reset(new EffectFactory(dev));
 	state.reset(new CommonStates(dev));
-	m_model = Model::CreateFromSDKMESH(dev, L"./Models/Teleport/Teleport.sdkmesh", *fa, true, true);
+	m_model = Model::CreateFromSDKMESH(dev, filename.c_str(), *fa, true, true);
 	return true;
 }
 
@@ -1145,4 +1278,137 @@ void GameObject::Draw()
 	{
 		DrawSdkmesh();
 	}
+	if (mType == SKY)
+	{
+		DrawSky();
+	}
+}
+void GameObject::DrawSky()
+{
+	////Draw the Sky's Sphere//////
+	//Set the spheres index buffer
+	//con->VSSetShader(VS, 0, 0);
+	//con->PSSetShader(PS, 0, 0);
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+
+	con->IASetIndexBuffer(sphereIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	//Set the spheres vertex buffer
+	con->IASetVertexBuffers(0, 1, &sphereVertBuffer, &stride, &offset);
+
+	//Set the WVP matrix and send it to the constant buffer in effect file
+	//WVP = smilesWorld * camView * camProjection;
+
+	Scale = XMMatrixScaling(50.0f, 50.0f, 50.0f);
+	XMMATRIX Translation = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+
+	sphereWorld = Scale * Translation;
+	cbPerObj.WVP = XMMatrixTranspose(sphereWorld  * camView * camProjection);
+
+	cbPerObj.World = XMMatrixTranspose(sphereWorld);
+
+	con->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+	con->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
+	//Send our skymap resource view to pixel shader
+	con->PSSetShaderResources(0, 1, &smrv);
+	con->PSSetSamplers(0, 1, &CubesTexSamplerState);
+
+	//Set the new VS and PS shaders
+	con->VSSetShader(SKYMAP_VS, 0, 0);
+	con->PSSetShader(SKYMAP_PS, 0, 0);
+	//Set the new depth/stencil and RS states
+	con->OMSetDepthStencilState(DSLessEqual, 0);
+	con->RSSetState(RSCullNone);
+	con->DrawIndexed(NumSphereFaces * 3, 0, 0);
+
+}
+void GameObject::initSky(D3DUtility* mApp)
+{
+	ID3DBlob* compilationMsgs = nullptr;
+	D3DCompileFromFile(L"Effects.fx", 0, 0, "SKYMAP_VS", "vs_5_0", 0, 0, &SKYMAP_VS_Buffer, &compilationMsgs);
+	D3DCompileFromFile(L"Effects.fx", 0, 0, "SKYMAP_PS", "ps_5_0", 0, 0, &SKYMAP_PS_Buffer, &compilationMsgs);
+	HRESULT hr;
+
+	hr = dev->CreateVertexShader(SKYMAP_VS_Buffer->GetBufferPointer(), SKYMAP_VS_Buffer->GetBufferSize(), NULL, &SKYMAP_VS);
+	hr = mApp->device->CreatePixelShader(SKYMAP_PS_Buffer->GetBufferPointer(), SKYMAP_PS_Buffer->GetBufferSize(), NULL, &SKYMAP_PS);
+	//-sky
+
+	Microsoft::WRL::ComPtr<ID3D11Resource> res = nullptr;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srvtmp = nullptr;
+	CreateDDSTextureFromFile(dev, L"skymap.dds",
+		res.GetAddressOf(), srvtmp.GetAddressOf());
+	D3D11_RESOURCE_DIMENSION resType = D3D11_RESOURCE_DIMENSION_UNKNOWN;
+	res->GetType(&resType);
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> SMTexture = nullptr;
+	res.As(&SMTexture);
+
+	D3D11_TEXTURE2D_DESC SMTextureDesc;
+	SMTexture->GetDesc(&SMTextureDesc);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SMViewDesc;
+	SMViewDesc.Format = SMTextureDesc.Format;
+	SMViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+	SMViewDesc.TextureCube.MipLevels = SMTextureDesc.MipLevels;
+	SMViewDesc.TextureCube.MostDetailedMip = 0;
+
+	hr = mApp->device->CreateShaderResourceView(res.Get(), &SMViewDesc, &smrv);
+
+	// Describe the Sample State
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory(&sampDesc, sizeof(sampDesc));
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+
+	//Create the Sample State
+	hr = mApp->device->CreateSamplerState(&sampDesc, &CubesTexSamplerState);
+	D3D11_RASTERIZER_DESC cmdesc;
+
+	ZeroMemory(&cmdesc, sizeof(D3D11_RASTERIZER_DESC));
+	cmdesc.FillMode = D3D11_FILL_SOLID;
+	cmdesc.CullMode = D3D11_CULL_BACK;
+	cmdesc.FrontCounterClockwise = true;
+	hr = mApp->device->CreateRasterizerState(&cmdesc, &CCWcullMode);
+
+	cmdesc.FrontCounterClockwise = false;
+
+	hr = mApp->device->CreateRasterizerState(&cmdesc, &CWcullMode);
+
+	cmdesc.CullMode = D3D11_CULL_NONE;
+	//cmdesc.FillMode = D3D11_FILL_WIREFRAME;
+
+	hr = mApp->device->CreateRasterizerState(&cmdesc, &RSCullNone);
+
+	D3D11_BUFFER_DESC cbd;
+	ZeroMemory(&cbd, sizeof(cbd));
+	cbd.Usage = D3D11_USAGE_DEFAULT;
+	cbd.ByteWidth = sizeof(cbPerObject);
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.CPUAccessFlags = 0;
+	// 新建常量缓冲区，不使用初始数据
+	dev->CreateBuffer(&cbd, nullptr, &cbPerObjectBuffer);
+	D3D11_DEPTH_STENCIL_DESC dssDesc;
+	ZeroMemory(&dssDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+	dssDesc.DepthEnable = true;
+	dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	dssDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+	mApp->device->CreateDepthStencilState(&dssDesc, &DSLessEqual);
+	// ******************
+// 设置常量缓冲区描述
+	/*D3D11_BUFFER_DESC cbd;
+	ZeroMemory(&cbd, sizeof(cbd));
+	cbd.Usage = D3D11_USAGE_DEFAULT;
+	cbd.ByteWidth = sizeof(cbPerObject);
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.CPUAccessFlags = 0;
+	// 新建常量缓冲区，不使用初始数据
+	dev->CreateBuffer(&cbd, nullptr, &cbPerObjectBuffer);*/
+	//return true;
 }

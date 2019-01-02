@@ -173,7 +173,8 @@ enum TYPE
 	CUBE = 1,
 	MD5=2,
 	OBJ=3,//don't use
-	SDKMESH=4
+	SDKMESH=4,
+	SKY=5
 };
 
 
@@ -204,6 +205,7 @@ public:
 	XMMATRIX meshWorld;
 
 	GameObject(D3DUtility* app);
+	void CreateSphere(D3DUtility * mApp, int LatLines, int LongLines);
 	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename, char *tag,
 		std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
 	~GameObject();
@@ -244,6 +246,8 @@ public:
 	ID3D11RasterizerState* CCWcullMode;
 	ID3D11RasterizerState* CWcullMode;
 
+	int life;
+
 	XMMATRIX camView = XMMatrixLookAtLH(
 		XMVectorSet(0.0f, 0.0f, -5.0f, 0.0f),
 		XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
@@ -264,16 +268,40 @@ public:
 	std::vector<ID3D11ShaderResourceView*> meshSRV;
 	std::vector<std::wstring> textureNameArray;
 
+	/*------*/
+
+
 	XMVECTOR pos= XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 	bool InitCube();
 	bool InitMd5();
-	bool InitSdkmesh(std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
+	bool InitSdkmesh(std::wstring filename, std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
 
 
 	void UpdateMatrix();
 	void DrawMd5();
 	void DrawCube();
 	void DrawSdkmesh();
+	/*---*/
+	//ID3D11SamplerState* CubesTexSamplerState;
+//	ID3D11BlendState* Transparency;
+//	ID3D11RasterizerState* RSCullNone;
+	//ID3D11RasterizerState* CCWcullMode;
+	//ID3D11RasterizerState* CWcullMode;
+	int NumSphereVertices;
+	int NumSphereFaces;
+	ID3D11VertexShader* SKYMAP_VS;
+	ID3D11PixelShader* SKYMAP_PS;
+	ID3D10Blob* SKYMAP_VS_Buffer;
+	ID3D10Blob* SKYMAP_PS_Buffer;
+	XMMATRIX Rotationx;
+	XMMATRIX Rotationz;
+	XMMATRIX Rotationy;
+	ID3D11DepthStencilState* DSLessEqual;
+	ID3D11ShaderResourceView* smrv;
+	ID3D11Buffer* sphereIndexBuffer;
+	ID3D11Buffer* sphereVertBuffer;
+	XMMATRIX sphereWorld;
+	/*----*/
 public:
 	std::unique_ptr<Model>                m_model;
 	//std::unique_ptr<EffectFactory>       m_fxFactory;
@@ -287,6 +315,8 @@ public:
 	bool LoadMD5Anim(std::wstring filename, Model3D& MD5Model);
 	void UpdateMD5Model(Model3D& MD5Model, float deltaTime, int animation);
 	void Draw();
+	void DrawSky();
+	void initSky(D3DUtility * mApp);
 };
 
 //this is another test

@@ -62,5 +62,8 @@
     <None Include="MD5Shader.fx">
       <Filter>Shader</Filter>
     </None>
+    <None Include="Effects.fx">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -33,7 +33,7 @@ using namespace DirectX;
 #pragma comment (lib, "dwrite.lib")
 #pragma comment (lib, "dinput8.lib")
 #pragma comment (lib, "dxguid.lib")
-#include <d3dx11effect.h>
+//#include <d3dx11effect.h>
 #include <Effects.h>
 #include <Model.h>
 #include <CommonStates.h>
@@ -88,12 +88,6 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> immediateContext = nullptr;   //设备上下文指针
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> renderTargetView = nullptr;//渲染目标视图指针  
 
-
-	//ID3D11Device* device = nullptr;                    //D3D11设备指针
-	//IDXGISwapChain* swapChain = nullptr;               //交换链指针
-	//ID3D11DeviceContext* immediateContext = nullptr;   //设备上下文指针
-	//ID3D11RenderTargetView* renderTargetView = nullptr;//渲染目标视图指针  
-
 	HRESULT InitD3D(
 		HINSTANCE hInstance,
 		int width, int height,
@@ -102,8 +96,5 @@ public:
 		IDXGISwapChain** swapChain,                       //交换链接口，用于描述交换链的特性
 		ID3D11Device** device);                           //设备用接口，每个D3D程序至少有一个设备
 
-
-
-	
 };
 #endif

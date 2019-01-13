@@ -188,8 +188,7 @@ public:
 	TYPE mType=CUBE;
 
 	ID3D11InputLayout* vertexLayout;
-	ID3DX11EffectTechnique* technique;
-	ID3DX11Effect* effect;
+
 	// Íø¸ñ¶¥µã»º´æ
 	ID3D11Buffer				*m_meshVertexBuffer;
 	// Íø¸ñË÷Òý»º´æ
@@ -205,7 +204,7 @@ public:
 	XMMATRIX meshWorld;
 
 	GameObject(D3DUtility* app);
-	void CreateSphere(D3DUtility * mApp, int LatLines, int LongLines);
+	void CreateSphere(int LatLines, int LongLines);
 	GameObject(D3DUtility* app, TYPE modelType, std::wstring filename, char *tag,
 		std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
 	~GameObject();
@@ -275,18 +274,13 @@ public:
 	bool InitCube();
 	bool InitMd5();
 	bool InitSdkmesh(std::wstring filename, std::shared_ptr<EffectFactory> fa, std::shared_ptr<CommonStates> state);
-
+	bool InitSky();
 
 	void UpdateMatrix();
 	void DrawMd5();
 	void DrawCube();
 	void DrawSdkmesh();
-	/*---*/
-	//ID3D11SamplerState* CubesTexSamplerState;
-//	ID3D11BlendState* Transparency;
-//	ID3D11RasterizerState* RSCullNone;
-	//ID3D11RasterizerState* CCWcullMode;
-	//ID3D11RasterizerState* CWcullMode;
+
 	int NumSphereVertices;
 	int NumSphereFaces;
 	ID3D11VertexShader* SKYMAP_VS;
@@ -304,7 +298,6 @@ public:
 	/*----*/
 public:
 	std::unique_ptr<Model>                m_model;
-	//std::unique_ptr<EffectFactory>       m_fxFactory;
 	std::shared_ptr<CommonStates>        m_states;
 
 	bool LoadMD5Model(std::wstring filename,
@@ -316,7 +309,6 @@ public:
 	void UpdateMD5Model(Model3D& MD5Model, float deltaTime, int animation);
 	void Draw();
 	void DrawSky();
-	void initSky(D3DUtility * mApp);
 };
 
 //this is another test

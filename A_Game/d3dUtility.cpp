@@ -21,7 +21,10 @@ D3DUtility* D3DUtility::GetApp()
 	return mApp;
 }
 
+D3DUtility::~D3DUtility()
+{
 
+}
 bool D3DUtility::InitApp()
 {
 

@@ -266,3 +266,4 @@ A_Game/A_Game.vcxproj
 # Resource folder
 A_Game/Resource/*.*
 A_Game/Models/*
+A_Game/libfbxsdk.dll

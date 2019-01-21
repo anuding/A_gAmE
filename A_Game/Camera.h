@@ -4,16 +4,14 @@
 #include "GameObject.h"
 class Camera
 {
+private:
+	std::vector<GameObject*> list;
+	XMVECTOR pos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 public:
-
-	Camera(std::vector<GameObject*> List);
+	Camera(std::vector<GameObject*> list);
 	~Camera();
-	float x = 3.0f;
-	float z = -5.0f;
-	std::vector<GameObject*> mList;
-	XMVECTOR campos=XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-
-	void SetCamPosition(float deltaX, float deltaZ);
+	void SetCamPosition(float pos_x, float pos_y, float pos_z);
+	void MoveCamPosition(float pos_x, float pos_y, float pos_z);
 	void Follow();
 };
 

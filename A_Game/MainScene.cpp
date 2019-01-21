@@ -4,14 +4,15 @@
 #include "debugprint.h"
 #include <iostream>
 #include "UpdateMethods.h"
+
 Camera* cam;
+
 std::vector<GameObject*> GameObjectList;
+GameObject* scene;
+//std::shared_ptr<EffectFactory>       m_fxFactory;
+//std::shared_ptr<CommonStates>        m_states;
 
-std::shared_ptr<EffectFactory>       m_fxFactory;
-std::shared_ptr<CommonStates>        m_states;
 
-float CamdeltaX = 3.0f;
-float CamdeltaZ = -5.0f;
 class  MainScene : public D3DUtility
 {
 public:
@@ -35,8 +36,6 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONDOWN:
 	{
-		MessageBox(hwnd, L"你点了左键", L"点击事件", MB_OK);
-
 		break;
 	}
 	case WM_DESTROY:
@@ -47,7 +46,10 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		if (wParam == VK_ESCAPE)
 			::DestroyWindow(hwnd);
+		if (wParam == VK_SPACE)  //响应键盘空格键
+		{
 
+		}
 		break;
 	}
 
@@ -62,9 +64,10 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 ////**************以下为框架函数******************
 void Update(float dt)
 {
-	UpdatePlayer(GameObjectList);
-	UpdateBoss(GameObjectList);
-	cam->Follow();
+
+	//UpdatePlayer(GameObjectList);
+	//UpdateBoss(GameObjectList);
+	cam->SetCamPosition(3.0f,2.0f,-8.0f);
 }
 
 bool Display(D3DUtility* mApp)
@@ -72,7 +75,6 @@ bool Display(D3DUtility* mApp)
 	if (mApp->device)
 	{
 		int count = GameObjectList.size();
-
 		ID3D11Device* dev;
 		ID3D11DeviceContext* con;
 		dev = mApp->device.Get();
@@ -81,15 +83,21 @@ bool Display(D3DUtility* mApp)
 		con->ClearRenderTargetView(mApp->renderTargetView.Get(), reinterpret_cast<const float*>(&black));
 		
 		con->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-		//static float dis = 0.0f;
-		//dis += 0.001f;
-		//GameObjectList[2]->SetWorldMatrix(XMMatrixTranslation(0, 0, dis));
+
+		static float angle = 0.0f;
+		angle += 0.0009f;
+		/*auto rota = XMMatrixRotationY(angle)*XMMatrixTranslation(3.0f, 0.0f, 0.0f);*/
+		auto rota0 = XMMatrixRotationY(angle);
+		/*GameObjectList[1]->SetWorldMatrix(rota);*/
+		GameObjectList[0]->SetWorldMatrix(rota0*XMMatrixTranslation(5.0f, 0.0f, 0.0f));
 		for (int i = 0; i < count; i++)
 		{
-			con->OMSetDepthStencilState(m_states->DepthDefault(), 0);
+			//con->OMSetDepthStencilState(m_states->DepthDefault(), 0);
 			GameObjectList[i]->Draw();
 		}
+
 		mApp->swapChain->Present(0, 0);
+
 	}
 	return true;
 }
@@ -114,11 +122,8 @@ int MainScene::Running()
 		else
 		{
 			mTimer.Tick();
-			//在这里进行动画计算和渲染
 			Update(mTimer.DeltaTime());//动画计算
-			//cam->SetCamPosition(0.0f,0.0f);
-			Display(mApp);//渲染
-
+			Display(mApp);//渲染		
 		}
 	}
 
@@ -136,34 +141,21 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
 
 	MainScene mainscene(hInstance);
-	mainscene.InitApp();
+	mainscene.InitApp();	
+	//m_fxFactory.reset(new EffectFactory(mainscene.mApp->device.Get()));
+	//m_states.reset(new CommonStates(mainscene.mApp->device.Get()));
+
+
 	char chplayer[20] = "player";
-	char chboss[20] = "boss";
-	m_fxFactory.reset(new EffectFactory(mainscene.mApp->device.Get()));
-	m_states.reset(new CommonStates(mainscene.mApp->device.Get()));
+	/*********************** Create GameObject **************************/
+	GameObject* cube = new GameObject(mainscene.mApp,CUBE,L"green_tex.dds",chplayer);
+	cube->SetWorldMatrix(XMMatrixTranslation(5.0f, 0.0f, 0.0f));
+	GameObjectList.push_back(cube);
+	GameObject* cubefbx = new GameObject(mainscene.mApp, FBX, L"green_tex.dds", chplayer);
+	GameObjectList.push_back(cubefbx);
 
 
-	GameObject* player = new GameObject(mainscene.mApp, MD5, L"Models/mpplayer.md5mesh", chplayer, m_fxFactory, m_states);
-	GameObject* boss = new GameObject(mainscene.mApp, MD5, L"Models/cyberdemon.md5mesh", chboss, m_fxFactory, m_states);
-
-	GameObject* cubeOri = new GameObject(mainscene.mApp);
-	GameObject* tele = new GameObject(mainscene.mApp,SDKMESH,L"Models/cyberdemon.md5mesh", chboss, m_fxFactory, m_states);
-
-	player->SetWorldMatrix(XMMatrixTranslation(3, 0, 0));
-
-	
-	
-	GameObjectList.push_back(player);
-	GameObjectList.push_back(boss);
-	GameObjectList.push_back(tele);
-	GameObjectList.push_back(cubeOri);
-
-
-
-	boss->communicateList = &GameObjectList;
 	cam = new Camera(GameObjectList);
-
-	
 	mainscene.Running();
 
 	return 0;

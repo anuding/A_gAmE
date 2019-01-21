@@ -9,8 +9,8 @@ Camera* cam;
 
 std::vector<GameObject*> GameObjectList;
 GameObject* scene;
-std::shared_ptr<EffectFactory>       m_fxFactory;
-std::shared_ptr<CommonStates>        m_states;
+//std::shared_ptr<EffectFactory>       m_fxFactory;
+//std::shared_ptr<CommonStates>        m_states;
 
 
 class  MainScene : public D3DUtility
@@ -64,9 +64,10 @@ LRESULT MainScene::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 ////**************以下为框架函数******************
 void Update(float dt)
 {
-	UpdatePlayer(GameObjectList);
-	UpdateBoss(GameObjectList);
-	cam->Follow();
+
+	//UpdatePlayer(GameObjectList);
+	//UpdateBoss(GameObjectList);
+	cam->SetCamPosition(3.0f,2.0f,-8.0f);
 }
 
 bool Display(D3DUtility* mApp)
@@ -83,19 +84,20 @@ bool Display(D3DUtility* mApp)
 		
 		con->ClearDepthStencilView(mApp->depthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		static float angle=0.0f;
-		//angle += 0.0004f;
-		auto iii = XMMatrixRotationY(angle)*XMMatrixScaling(35.22f, 35.22f, 35.22f)*XMMatrixTranslation(0, -20, 0);
-		scene->SetWorldMatrix(iii);
-		//drawbitmap();
+		static float angle = 0.0f;
+		angle += 0.0009f;
+		/*auto rota = XMMatrixRotationY(angle)*XMMatrixTranslation(3.0f, 0.0f, 0.0f);*/
+		auto rota0 = XMMatrixRotationY(angle);
+		/*GameObjectList[1]->SetWorldMatrix(rota);*/
+		GameObjectList[0]->SetWorldMatrix(rota0*XMMatrixTranslation(5.0f, 0.0f, 0.0f));
 		for (int i = 0; i < count; i++)
 		{
-			con->OMSetDepthStencilState(m_states->DepthDefault(), 0);
+			//con->OMSetDepthStencilState(m_states->DepthDefault(), 0);
 			GameObjectList[i]->Draw();
-		
 		}
 
 		mApp->swapChain->Present(0, 0);
+
 	}
 	return true;
 }
@@ -139,42 +141,21 @@ int WINAPI WinMain(HINSTANCE hInstance,
 {
 
 	MainScene mainscene(hInstance);
-	mainscene.InitApp();
+	mainscene.InitApp();	
+	//m_fxFactory.reset(new EffectFactory(mainscene.mApp->device.Get()));
+	//m_states.reset(new CommonStates(mainscene.mApp->device.Get()));
+
 
 	char chplayer[20] = "player";
-	char chboss[20] = "boss";
-	char chsky[20] = "sky";
-	
-	m_fxFactory.reset(new EffectFactory(mainscene.mApp->device.Get()));
-	m_states.reset(new CommonStates(mainscene.mApp->device.Get()));
+	/*********************** Create GameObject **************************/
+	GameObject* cube = new GameObject(mainscene.mApp,CUBE,L"green_tex.dds",chplayer);
+	cube->SetWorldMatrix(XMMatrixTranslation(5.0f, 0.0f, 0.0f));
+	GameObjectList.push_back(cube);
+	GameObject* cubefbx = new GameObject(mainscene.mApp, FBX, L"green_tex.dds", chplayer);
+	GameObjectList.push_back(cubefbx);
 
 
-	GameObject* player = new GameObject(mainscene.mApp, MD5, L"Models/mpplayer.md5mesh", chplayer, m_fxFactory, m_states);
-	GameObject* boss = new GameObject(mainscene.mApp, MD5, L"Models/cyberdemon.md5mesh", chboss, m_fxFactory, m_states);
-	GameObject* sky = new GameObject(mainscene.mApp, SKY, L"skymap.dds", chsky, m_fxFactory, m_states);
-	scene = new GameObject(mainscene.mApp, SDKMESH, L"Teleport.sdkmesh", chsky, m_fxFactory, m_states);
-
-	player->life = 1000000;
-	boss->life = 10;
-
-
-	GameObjectList.push_back(player);
-	GameObjectList.push_back(boss);
-	GameObjectList.push_back(sky);
-
-
-	GameObjectList.push_back(scene);
-	player->SetWorldMatrix(XMMatrixTranslation(5, 0, -5));
-	
-
-	
-
-	boss->communicateList = &GameObjectList;
 	cam = new Camera(GameObjectList);
-
-	mciSendString(L"open bossD.mp3 alias bossD wait", NULL, 0, NULL);
-	mciSendString(L"open player.mp3 alias player wait", NULL, 0, NULL);
-	mciSendString(L"play bgm.mp3", NULL, 0, NULL);
 	mainscene.Running();
 
 	return 0;

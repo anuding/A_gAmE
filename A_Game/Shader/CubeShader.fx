@@ -8,18 +8,29 @@ cbuffer ConstantBuffer : register(b0)
 	bool hasTexture;
 	bool hasNormMap;
 }
+Texture2D ObjTexture;
+SamplerState Sampler     //定义采样器
+{
+    Filter = MIN_MAG_MIP_LINEAR; //采用线性过滤
+    AddressU = WRAP; //寻址模式为Clamp
+    AddressV = MIRROR; //寻址模式为Clamp
+};
 
 
 struct VertexIn
 {
 	float3 posL : POSITION;
-	float4 color : COLOR;
+	float2 in_tex_coord : TEXCOORD;
+	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
 };
 
 struct VertexOut
 {
 	float4 posH : SV_POSITION;
-	float4 color : COLOR;
+	float2 tex_coord : TEXCOORD;
+	float3 normal : NORMAL;
+	float3 tangent : TANGENT;
 };
 
 
@@ -28,13 +39,17 @@ VertexOut VS(VertexIn vIn)
 {
 	VertexOut vOut;
 	vOut.posH = mul(float4(vIn.posL, 1.0f), WVP);  // mul 才是矩阵乘法, 运算符*要求操作对象为
-	//vOut.posH = mul(vOut.posH, gView);               // 行列数相等的两个矩阵，结果为
-	//vOut.posH = mul(vOut.posH, gProj);               // Cij = Aij * Bij
-	vOut.color = vIn.color;                         // 这里alpha通道的值默认为1.0
+
+    vOut.tex_coord = vIn.in_tex_coord;
+    vOut.normal = mul(vIn.normal, World);
+    vOut.tangent = mul(vIn.tangent,World);
+
 	return vOut;
 }
 // 像素着色器
 float4 PS(VertexOut pIn) : SV_Target
 {
-	return pIn.color;
+    pIn.normal = normalize(pIn.normal);
+    float4 diffuse = ObjTexture.Sample(Sampler, pIn.tex_coord);
+    return diffuse;
 }

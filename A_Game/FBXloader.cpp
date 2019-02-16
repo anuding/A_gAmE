@@ -24,13 +24,16 @@ HRESULT FBXloader::LoadFBX()
 	FbxImporter* pImporter = FbxImporter::Create(g_pFbxSdkManager, "");
 	FbxScene* pFbxScene = FbxScene::Create(g_pFbxSdkManager, "");
 
-	bool bSuccess = pImporter->Initialize("E:\\Model_Proj\\gallina\\gallina_tri.fbx", -1, g_pFbxSdkManager->GetIOSettings());
+	bool bSuccess = pImporter->Initialize("E:\\Model_Proj\\Archer\\BoxingTri.fbx", -1, g_pFbxSdkManager->GetIOSettings());
 	if (!bSuccess) return E_FAIL;
 
 	bSuccess = pImporter->Import(pFbxScene);
 	if (!bSuccess) return E_FAIL;
 
 	pImporter->Destroy();
+
+	//FbxGeometryConverter geometryConverter(g_pFbxSdkManager);
+	//geometryConverter.Triangulate(pFbxScene, true);
 
 	FbxNode* pFbxRootNode = pFbxScene->GetRootNode();
 
@@ -70,6 +73,13 @@ HRESULT FBXloader::LoadFBX()
 			FbxVector4* pVertices = pMesh->GetControlPoints();
 		
 			int cnt = pMesh->GetControlPointsCount();
+			//按名称获取存储在顶点的所有UV集
+			FbxStringList uvsetName;
+			pMesh-> GetUVSetNames(uvsetName);
+			FbxArray <FbxVector2> uvsets;
+			// uvsets将存储每个顶点的UV
+			pMesh->GetPolygonVertexUVs(uvsetName.GetStringAt(0), uvsets);
+			auto dw = uvsets.Size();
 			//GetControlPointsCount()获得d3d中顶点的数量  pMesh->GetPolygonCount()
 			vertices_size = sizeof(VertexForCube)*pMesh->GetControlPointsCount();
 			fbx_vertices = new VertexForCube[pMesh->GetControlPointsCount()];
@@ -77,8 +87,8 @@ HRESULT FBXloader::LoadFBX()
 				fbx_vertices[i].pos.x = (FLOAT)pMesh->GetControlPointAt(i)[0]*0.01f;
 				fbx_vertices[i].pos.y = (FLOAT)pMesh->GetControlPointAt(i)[1]*0.01f;
 				fbx_vertices[i].pos.z = (FLOAT)pMesh->GetControlPointAt(i)[2]*0.01f;
-				fbx_vertices[i].texCoord.x = 0.0f;
-				fbx_vertices[i].texCoord.y = 1.0f; 
+				fbx_vertices[i].texCoord.x = uvsets[i][0];
+				fbx_vertices[i].texCoord.y = uvsets[i][1];
 				fbx_vertices[i].tangent.x = 0.0f;
 				fbx_vertices[i].tangent.y = 0.0f;
 				fbx_vertices[i].tangent.z = 0.0f;

@@ -30,6 +30,7 @@ using namespace DirectX;
 #pragma comment(lib, "winmm.lib")
 
 
+#include "Mouse.h"
 
 
 
@@ -37,6 +38,8 @@ using namespace DirectX;
 class D3DUtility
 {
 public:
+	std::unique_ptr<DirectX::Mouse> mMouse;
+	DirectX::Mouse::ButtonStateTracker mMouseTracker;			// Êó±ê×´Ì¬×·×ÙÆ÷
 
 	D3DUtility(HINSTANCE hInstance);
 	~D3DUtility();

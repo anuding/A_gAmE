@@ -319,9 +319,9 @@ void GameObject::AnimeFbx()
 	// 最終的な頂点座標を計算しVERTEXに変換
 	for (int i = 0; i < mesh->GetControlPointsCount(); i++) {
 		FbxVector4 outVertex = clusterDeformation[i].MultNormalize(mesh->GetControlPointAt(i));
-		loader->fbx_vertices[i].pos.x = (FLOAT)outVertex[0] * 0.6f;
-		loader->fbx_vertices[i].pos.y = (FLOAT)outVertex[1] * 0.6f;
-		loader->fbx_vertices[i].pos.z = (FLOAT)outVertex[2] * 0.6f;
+		loader->fbx_vertices[i].pos.x = (FLOAT)outVertex[0] * 0.05f;
+		loader->fbx_vertices[i].pos.y = (FLOAT)outVertex[1] * 0.05f;
+		loader->fbx_vertices[i].pos.z = (FLOAT)outVertex[2] * 0.05f;
 	}
 
 	delete[] clusterDeformation;

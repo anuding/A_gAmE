@@ -28,6 +28,7 @@ D3DUtility::~D3DUtility()
 bool D3DUtility::InitApp()
 {
 
+	mMouse = std::make_unique<DirectX::Mouse>();
 	InitWindow();
 	InitD3D(
 		mhAppInst,

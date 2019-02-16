@@ -14,7 +14,7 @@ public:
 	int *fbx_indices;
 	int vertices_size = 0;
 	int indices_size = 0;
-	int AnimStackNumber = 0;    // 0 - 2
+	int AnimStackNumber = 2;    // 0 - 2
 	FbxTime FrameTime, timeCount, start, stop;
 	FbxNode* pFbxChildNode;
 	FbxMesh* pMesh;
